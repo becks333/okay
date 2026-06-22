@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habib Blocks Management System</title>
+
+```
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        font-family:'Segoe UI',sans-serif;
+    }
+
+    body{
+        background:linear-gradient(135deg,#0f172a,#1e293b);
+        color:white;
+        min-height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    }
+
+    .container{
+        text-align:center;
+        max-width:800px;
+        padding:40px;
+    }
+
+    h1{
+        font-size:3rem;
+        margin-bottom:15px;
+    }
+
+    p{
+        font-size:1.1rem;
+        color:#cbd5e1;
+        margin-bottom:30px;
+    }
+
+    .btn{
+        display:inline-block;
+        padding:15px 35px;
+        background:#2563eb;
+        color:white;
+        text-decoration:none;
+        border-radius:10px;
+        font-size:18px;
+        transition:.3s;
+    }
+
+    .btn:hover{
+        background:#1d4ed8;
+    }
+
+    .features{
+        margin-top:50px;
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+        gap:20px;
+    }
+
+    .card{
+        background:rgba(255,255,255,0.08);
+        padding:20px;
+        border-radius:15px;
+        backdrop-filter:blur(10px);
+    }
+
+    .card h3{
+        margin-bottom:10px;
+    }
+</style>
+```
+
+</head>
+<body>
+
+```
+<div class="container">
+
+    <h1>Habib Blocks</h1>
+
+    <p>
+        Production, Sales, Expenses and Profit Tracking System
+    </p>
+
+    <a href="dashboard.html" class="btn">
+        Enter Dashboard
+    </a>
+
+    <div class="features">
+
+        <div class="card">
+            <h3>Production</h3>
+            <p>Track daily block production records.</p>
+        </div>
+
+        <div class="card">
+            <h3>Sales</h3>
+            <p>Monitor customer sales and revenue.</p>
+        </div>
+
+        <div class="card">
+            <h3>Expenses</h3>
+            <p>Manage daily operational expenses.</p>
+        </div>
+
+        <div class="card">
+            <h3>Reports</h3>
+            <p>Generate weekly and monthly reports.</p>
+        </div>
+
+    </div>
+
+</div>
+```
+
+</body>
+</html>

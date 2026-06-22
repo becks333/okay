@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production - Block Factory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Habib Blocks</h2>
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="production.html">🏭 Production</a>
+        <a href="sales.html">💰 Sales</a>
+        <a href="expenses.html">📉 Expenses</a>
+        <a href="reports.html">📋 Reports</a>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Production Entry</h1>
+        </header>
+
+        <div class="form-container">
+            <form id="productionForm">
+                <div class="form-group">
+                    <label for="productionDate">📅 Production Date <span style="color:#ef4444">*</span></label>
+                    <input type="date" id="productionDate" name="productionDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="blockType">🧱 Block Type <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="blockType" name="blockType" placeholder="e.g., Standard, Hollow, Interlocking" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantityProduced">📦 Quantity Produced <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="quantityProduced" name="quantityProduced" placeholder="Enter quantity" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cementBagsUsed">🛢️ Cement Bags Used <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="cementBagsUsed" name="cementBagsUsed" placeholder="Enter number of bags" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="remarks">📝 Remarks</label>
+                    <textarea id="remarks" name="remarks" placeholder="Optional notes about this production batch"></textarea>
+                </div>
+
+                <button type="submit">✓ Save Production</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

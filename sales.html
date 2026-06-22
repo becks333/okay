@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales - Block Factory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Habib Blocks</h2>
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="production.html">🏭 Production</a>
+        <a href="sales.html">💰 Sales</a>
+        <a href="expenses.html">📉 Expenses</a>
+        <a href="reports.html">📋 Reports</a>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Sales Entry</h1>
+        </header>
+
+        <div class="form-container">
+            <form id="salesForm">
+                <div class="form-group">
+                    <label for="saleDate">📅 Sale Date <span style="color:#ef4444">*</span></label>
+                    <input type="date" id="saleDate" name="saleDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerName">👤 Customer Name <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="customerName" name="customerName" placeholder="Enter customer name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="blockType">🧱 Block Type <span style="color:#ef4444">*</span></label>
+                    <select id="blockType" name="blockType" required>
+                        <option value="">-- Select block type --</option>
+                        <option value="Hollow 5 Inch">Hollow 5 Inch</option>
+                        <option value="Solid 5 Inch">Solid 5 Inch</option>
+                        <option value="Solid 6 Inch">Solid 6 Inch</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">📦 Quantity <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="quantity" name="quantity" min="1" placeholder="Enter quantity" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="price">💵 Unit Price (GH₵) <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="price" name="unitPrice" min="0" step="0.01" placeholder="Enter price per unit" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="total">💰 Total Amount (GH₵)</label>
+                    <input type="number" id="total" name="totalAmount" readonly style="background:#f0f9ff; cursor:not-allowed">
+                </div>
+
+                <button type="submit">✓ Save Sale</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

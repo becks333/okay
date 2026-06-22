@@ -1,0 +1,533 @@
+/* =========================
+   BASE RESET & VARIABLES
+========================= */
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #dbeafe;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #0f172a;
+    --light: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1f2937;
+    --text-light: #64748b;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background: #f8fafc;
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+/* =========================
+   SIDEBAR (PROFESSIONAL)
+========================= */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 260px;
+    height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1a2b4a 100%);
+    padding: 24px 0;
+    border-right: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 2px 0 16px rgba(0,0,0,0.15);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    color: #ffffff;
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    padding: 0 16px;
+}
+
+.sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    border-left: 3px solid transparent;
+    margin: 4px 0;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+    background: rgba(59, 130, 246, 0.12);
+    color: #ffffff;
+    border-left-color: #3b82f6;
+}
+
+.sidebar a:active {
+    transform: translateX(2px);
+}
+
+/* =========================
+   MAIN LAYOUT
+========================= */
+.main-content {
+    margin-left: 260px;
+    padding: 28px;
+    min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+    .sidebar { width: 0; }
+    .main-content { margin-left: 0; padding: 16px; }
+}
+
+/* =========================
+   HEADER (PROFESSIONAL)
+========================= */
+header {
+    background: #ffffff;
+    padding: 18px 28px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+}
+
+header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.5px;
+}
+
+/* =========================
+   DASHBOARD CARDS
+========================= */
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), #7c3aed);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.card:hover::before {
+    transform: scaleX(1);
+}
+
+.card h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.card p {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.5px;
+}
+
+/* =========================
+   FORM STYLE (PROFESSIONAL)
+========================= */
+.form-container {
+    margin-top: 0;
+}
+
+form {
+    background: #ffffff;
+    padding: 32px;
+    border-radius: 12px;
+    max-width: 700px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: block;
+    letter-spacing: 0.3px;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: #fff;
+    color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #cbd5e1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: #f0f9ff;
+}
+
+textarea {
+    min-height: 100px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+/* =========================
+   BUTTONS (PROFESSIONAL)
+========================= */
+button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+button:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+button.secondary {
+    background: var(--light);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+button.secondary:hover {
+    background: #f1f5f9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+button.success {
+    background: var(--success);
+}
+
+button.success:hover {
+    background: #059669;
+}
+
+button.danger {
+    background: var(--danger);
+}
+
+button.danger:hover {
+    background: #dc2626;
+}
+
+/* =========================
+   TABLE (PROFESSIONAL)
+========================= */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+}
+
+thead {
+    background: linear-gradient(135deg, #0f172a 0%, #1a2b4a 100%);
+}
+
+th {
+    color: white;
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text);
+}
+
+tr:hover {
+    background: #f8fafc;
+    transition: background 0.2s ease;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* =========================
+   CHARTS & SECTIONS
+========================= */
+.charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+    margin: 28px 0;
+}
+
+.chart-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+}
+
+.chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    letter-spacing: 0.3px;
+}
+
+/* =========================
+   FILTERS & SEARCH
+========================= */
+.filters {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.filters > * {
+    flex: 1;
+    min-width: 140px;
+}
+
+.filters label {
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.filters input,
+.filters select {
+    margin-top: 4px;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.filters button {
+    margin-top: 0;
+    width: auto;
+    padding: 10px 20px;
+    flex: 0;
+}
+
+.filters .reports-actions {
+    display: flex;
+    gap: 8px;
+    flex: 0;
+}
+
+.filters .reports-actions button {
+    width: auto;
+    padding: 10px 16px;
+}
+
+/* =========================
+   PAGINATION
+========================= */
+.pagination {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 16px;
+    justify-content: center;
+}
+
+.pagination button {
+    width: auto;
+    padding: 8px 16px;
+    margin: 0;
+    font-size: 13px;
+}
+
+.pagination span {
+    font-size: 13px;
+    color: var(--text-light);
+    min-width: 200px;
+    text-align: center;
+}
+
+/* =========================
+   UTILITIES
+========================= */
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--text-light);
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+.gap-12 {
+    gap: 12px;
+}
+
+.d-flex {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 1024px) {
+    .container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar { width: 0; }
+    .main-content { margin-left: 0; padding: 16px; }
+    
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .charts {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filters > * {
+        width: 100%;
+    }
+    
+    .filters button {
+        width: 100%;
+    }
+    
+    .filters .reports-actions {
+        flex: 1;
+        flex-direction: column;
+    }
+    
+    form {
+        padding: 20px;
+    }
+    
+    button {
+        width: 100%;
+    }
+    
+    header {
+        padding: 14px 16px;
+    }
+    
+    header h1 {
+        font-size: 18px;
+    }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reports - Block Factory</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Habib Blocks</h2>
+    <a href="dashboard.html">📊 Dashboard</a>
+    <a href="production.html">🏭 Production</a>
+    <a href="sales.html">💰 Sales</a>
+    <a href="expenses.html">📉 Expenses</a>
+    <a href="reports.html">📋 Reports</a>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <h1>Reports & Analytics</h1>
+    </header>
+
+    <div class="filters">
+      <div>
+        <label>📂 Type:</label>
+        <select id="reportType">
+          <option value="all">All Records</option>
+          <option value="production">Production Only</option>
+          <option value="sales">Sales Only</option>
+          <option value="expenses">Expenses Only</option>
+          <option value="activities">Activities</option>
+        </select>
+      </div>
+
+      <div>
+        <label>📅 From:</label>
+        <input type="date" id="dateFrom" />
+      </div>
+
+      <div>
+        <label>📅 To:</label>
+        <input type="date" id="dateTo" />
+      </div>
+
+      <div>
+        <label>🔍 Search:</label>
+        <input id="q" placeholder="Search..." />
+      </div>
+
+      <div>
+        <label>📊 Page Size:</label>
+        <input id="pageSize" type="number" value="50" style="width:80px" />
+      </div>
+
+      <div class="reports-actions">
+        <button id="applyFilters" class="secondary">Apply</button>
+        <button id="exportCsv" class="secondary">Export Page</button>
+        <button id="exportAllCsv" class="secondary">Export All</button>
+      </div>
+    </div>
+
+    <div id="reportsContainer">
+      <table id="reportsTable">
+        <thead id="reportsHead">
+          <tr>
+            <th style="cursor:pointer" data-sort="DateCol">📅 Date <span class="sort-indicator"></span></th>
+            <th style="cursor:pointer" data-sort="TypeText">📂 Type <span class="sort-indicator"></span></th>
+            <th style="cursor:pointer" data-sort="Details">📝 Details <span class="sort-indicator"></span></th>
+            <th style="cursor:pointer" data-sort="Amount">💵 Amount <span class="sort-indicator"></span></th>
+          </tr>
+        </thead>
+        <tbody id="reportsBody"></tbody>
+      </table>
+      
+      <div class="pagination" style="padding: 16px 0;">
+        <button id="prevPage" class="secondary">← Prev</button>
+        <span id="pageInfo">Page 1</span>
+        <button id="nextPage" class="secondary">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

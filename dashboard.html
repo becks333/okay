@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Factory Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Habib Blocks</h2>
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="production.html">🏭 Production</a>
+        <a href="sales.html">💰 Sales</a>
+        <a href="expenses.html">📉 Expenses</a>
+        <a href="reports.html">📋 Reports</a>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Dashboard</h1>
+        </header>
+
+        <div class="container">
+            <div class="card">
+                <h3>🏭 Production</h3>
+                <p id="productionTotal">0 Blocks</p>
+            </div>
+            <div class="card">
+                <h3>💰 Sales</h3>
+                <p id="salesTotal">GH₵ 0</p>
+            </div>
+            <div class="card">
+                <h3>📉 Expenses</h3>
+                <p id="expensesTotal">GH₵ 0</p>
+            </div>
+            <div class="card">
+                <h3>📈 Profit</h3>
+                <p id="profitTotal">GH₵ 0</p>
+            </div>
+        </div>
+
+        <div class="charts">
+            <div class="chart-card">
+                <h3>📊 Sales Last 7 Days</h3>
+                <canvas id="salesChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📊 Expenses Last 7 Days</h3>
+                <canvas id="expensesChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <header style="margin-top: 28px;">
+            <h1>Recent Activities</h1>
+        </header>
+
+        <div class="form-container">
+            <table id="recentActivitiesTable">
+                <thead>
+                    <tr>
+                        <th>📅 Date</th>
+                        <th>📝 Activity</th>
+                        <th>💵 Amount</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

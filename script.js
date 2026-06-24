@@ -1,10 +1,13 @@
 // =========================================================================
-// 1. FIREBASE CONFIGURATION (Using standard Web Modules via CDN)
+// 1. FIREBASE CONFIGURATION & SECURITY GATEWAY
 // =========================================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, onSnapshot, query, orderBy, getDocs, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getAuth, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBXRkfeV2yfGukkzTxR2SdNF-T1W6c3hcE",
@@ -17,6 +20,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+// GLOBAL SECURITY ACTION: Protect operational sheets from external URLs
+onAuthStateChanged(auth, (user) => {
+    // If the user isn't logged in, instantly kick them back to index.html
+    if (!user) {
+        window.location.href = "index.html";
+    }
+});
 
 // Global lists to store cloud data locally for filtering
 let productionsList = [];
@@ -282,6 +294,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (dropdownArrow) dropdownArrow.innerText = "▼";
                 toggleSettingsBtn.style.color = "#9ca3af";
             }
+        });
+    }
+
+    // =========================================================================
+    // SECURE SIDEBAR LOGOUT ACTION HANDLER
+    // =========================================================================
+    const logoutBtn = document.getElementById("sidebarLogoutBtn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            signOut(auth).then(() => {
+                window.location.href = "index.html";
+            }).catch((err) => {
+                alert("Error logging out: " + err.message);
+            });
         });
     }
 

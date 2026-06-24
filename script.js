@@ -3,7 +3,7 @@
 // =========================================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, onSnapshot, query, orderBy 
+    getFirestore, collection, addDoc, onSnapshot, query, orderBy, getDocs, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -261,6 +261,43 @@ document.addEventListener("DOMContentLoaded", () => {
             if (currentPage < totalPages) {
                 currentPage++;
                 applyReportFilters();
+            }
+        });
+    }
+
+    // =========================================================================
+    // DANGER ZONE: DATABASE DELETION ENGINE
+    // =========================================================================
+    const resetDbBtn = document.getElementById("resetDbBtn");
+    if (resetDbBtn) {
+        resetDbBtn.addEventListener("click", async () => {
+            const firstWarning = confirm("⚠️ WARNING: You are about to completely wipe the factory database. This will delete all Production logs, Sales sheets, and Expense reports. Proceed?");
+            if (!firstWarning) return;
+
+            const finalConfirmation = prompt("To confirm absolute destruction of all records, type 'DELETE' below:");
+            if (finalConfirmation !== "DELETE") {
+                alert("Wipe canceled. Security phrase incorrect.");
+                return;
+            }
+
+            resetDbBtn.disabled = true;
+            resetDbBtn.innerText = "⏳ Purging Cloud...";
+
+            try {
+                const collectionsToClear = ["productions", "sales", "expenses"];
+                
+                for (const colName of collectionsToClear) {
+                    const querySnapshot = await getDocs(collection(db, colName));
+                    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+                    await Promise.all(deletePromises);
+                }
+
+                alert("🗑️ Database successfully purged! The system has reset back to clean slate settings.");
+                window.location.reload();
+            } catch (err) {
+                alert("Error during system purge: " + err.message);
+                resetDbBtn.disabled = false;
+                resetDbBtn.innerText = "🗑️ Clear Live Data";
             }
         });
     }

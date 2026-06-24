@@ -6,14 +6,14 @@ import {
     getFirestore, collection, addDoc, onSnapshot, query, orderBy 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// !!! Paste your actual Firebase configuration keys inside this object !!!
+// Your exact Firebase configuration keys injected perfectly
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyBXRkfeV2yfGukkzTxR2SdNF-T1W6c3hcE",
+    authDomain: "habib-blocks.firebaseapp.com",
+    projectId: "habib-blocks",
+    storageBucket: "habib-blocks.firebasestorage.app",
+    messagingSenderId: "648682421423",
+    appId: "1:648682421423:web:346671280bbeda2c37e85a"
 };
 
 // Initialize Firebase & Cloud Firestore

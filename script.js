@@ -265,6 +265,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================================================
+    // SYSTEM SETTINGS DROPDOWN ACCORDION TOGGLE
+    // =========================================================================
+    const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const dropdownArrow = document.getElementById("dropdownArrow");
+
+    if (toggleSettingsBtn && settingsPanel) {
+        toggleSettingsBtn.addEventListener("click", () => {
+            if (settingsPanel.style.display === "none") {
+                settingsPanel.style.display = "block";
+                if (dropdownArrow) dropdownArrow.innerText = "▲";
+                toggleSettingsBtn.style.color = "#ffffff";
+            } else {
+                settingsPanel.style.display = "none";
+                if (dropdownArrow) dropdownArrow.innerText = "▼";
+                toggleSettingsBtn.style.color = "#9ca3af";
+            }
+        });
+    }
+
+    // =========================================================================
     // DANGER ZONE: DATABASE DELETION ENGINE
     // =========================================================================
     const resetDbBtn = document.getElementById("resetDbBtn");

@@ -6,7 +6,158 @@
     <title>Production - Block Factory</title>
     <link rel="stylesheet" href="style.css">
 </head>
+<body><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production - Block Factory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
+    <div class="sidebar">
+        <h2>Habib Blocks</h2>
+        <a href="dashboard.html">📊 Dashboard</a>
+        <a href="production.html">🏭 Production</a>
+        <a href="sales.html">💰 Sales</a>
+        <a href="expenses.html">📉 Expenses</a>
+        <a href="reports.html">📋 Reports</a>
+
+        <div style="margin-top: 40px; border-top: 1px solid #374151; padding-top: 15px;">
+            <button id="toggleSettingsBtn" style="background: none; border: none; color: #9ca3af; width: 100%; text-align: left; padding: 10px 5px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; font-family: inherit;">
+                <span>⚙️ Factory Settings</span>
+                <span id="dropdownArrow" style="font-size: 10px;">▼</span>
+            </button>
+            
+            <div id="settingsPanel" style="display: none; padding: 10px 5px 0 5px; transition: all 0.2s ease;">
+                <div style="background: #1e293b; padding: 10px; border-radius: 6px; border: 1px solid #475569; margin-bottom: 12px;">
+                    <label for="startingCapital" style="display: block; color: #cbd5e1; font-size: 11px; font-weight: bold; margin-bottom: 6px;">💰 Opening Capital (GH₵):</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="number" id="startingCapital" min="0" step="0.01" placeholder="0.00" style="flex: 1; padding: 6px; font-size: 12px; background: #0f172a; border: 1px solid #475569; border-radius: 4px; color: #ffffff;">
+                        <button id="saveCapitalBtn" style="background: #2563eb; color: #ffffff; border: none; padding: 0 10px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">Set</button>
+                    </div>
+                </div>
+
+                <p style="color: #6b7280; font-size: 11px; margin: 0 0 10px 0; line-height: 1.3; text-align: left;">Danger Zone: Purges all logs from the active cloud storage sheets.</p>
+                <button id="resetDbBtn" style="background-color: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 12px; transition: background 0.2s;">
+                    🗑️ Clear Live Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- SECTION 1: PRODUCTION BATCHES -->
+        <header>
+            <h1>Production Entry</h1>
+        </header>
+
+        <div class="form-container">
+            <form id="productionForm">
+                <div class="form-group">
+                    <label for="productionDate">📅 Production Date <span style="color:#ef4444">*</span></label>
+                    <input type="date" id="productionDate" name="productionDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="blockType">🧱 Block Type <span style="color:#ef4444">*</span></label>
+                    <select id="blockType" name="blockType" required>
+                        <option value="">-- Select Block Type --</option>
+                        <option value="Hollow 5 inches">Hollow 5 inches</option>
+                        <option value="Solid 5 inches">Solid 5 inches</option>
+                        <option value="Solid 6 inches">Solid 6 inches</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantityProduced">📦 Quantity Produced <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="quantityProduced" name="quantityProduced" placeholder="Enter quantity" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cementBagsUsed">🛢️ Cement Bags Used <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="cementBagsUsed" name="cementBagsUsed" placeholder="Enter number of bags" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="remarks">📝 Remarks</label>
+                    <textarea id="remarks" name="remarks" placeholder="Optional notes about this production batch"></textarea>
+                </div>
+
+                <button type="submit">✓ Save Production</button>
+            </form>
+        </div>
+
+        <!-- SECTION 2: CASUALTIES AND DAMAGES ENTRY -->
+        <header style="margin-top: 35px;">
+            <h1>💥 Record Casualties / Damages</h1>
+        </header>
+
+        <div class="form-container">
+            <form id="casualtiesForm">
+                <div class="form-group">
+                    <label for="casualtyDate">📅 Date Noticed <span style="color:#ef4444">*</span></label>
+                    <input type="date" id="casualtyDate" name="casualtyDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="casualtyBlockType">🧱 Block Type Affected <span style="color:#ef4444">*</span></label>
+                    <select id="casualtyBlockType" name="casualtyBlockType" required>
+                        <option value="">-- Select Block Type --</option>
+                        <option value="Hollow 5 inches">Hollow 5 inches</option>
+                        <option value="Solid 5 inches">Solid 5 inches</option>
+                        <option value="Solid 6 inches">Solid 6 inches</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantityBroken">📉 Quantity Broken / Damaged <span style="color:#ef4444">*</span></label>
+                    <input type="number" id="quantityBroken" name="quantityBroken" min="1" placeholder="e.g., 15" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="damageReason">📝 Reason for Damage</label>
+                    <select id="damageReason" name="damageReason">
+                        <option value="Curing Breakage">💧 Curing / Cracking</option>
+                        <option value="Handling/Moving">🚜 Handling & Moving</option>
+                        <option value="Bad Mix">🧪 Poor Aggregate Mix</option>
+                        <option value="Other">📌 Other</option>
+                    </select>
+                </div>
+
+                <button type="submit" style="background-color: #d97706;">✗ Log Broken Blocks</button>
+            </form>
+        </div>
+
+        <!-- SECTION 3: RECENT CASUALTY RECORDS -->
+        <header style="margin-top: 35px;">
+            <h1>📋 Logged Breakage Records</h1>
+        </header>
+
+        <div class="form-container" style="margin-bottom: 40px;">
+            <table id="casualtiesTable" style="width:100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #1e40af; border-bottom: 2px solid #1d4ed8;">
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📅 Date</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">🧱 Block Type</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📝 Reason</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📉 Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="casualtiesTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding:20px; color:#888;">
+                            Loading live casualty logs...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
     <div class="sidebar">
         <h2>Habib Blocks</h2>
         <a href="dashboard.html">📊 Dashboard</a>

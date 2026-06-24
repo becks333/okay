@@ -193,20 +193,28 @@ function calculateAndPopulateDashboard() {
 }
 
 // =========================================================================
-// REAL-TIME EXPENSES SPREADSHEET BUILDER WITH GRAND TOTAL CASH FLOW ENGINE
+// REAL-TIME EXPENSES SPREADSHEET BUILDER WITH NET BALANCE FLOW ENGINE
 // =========================================================================
 function populateExpensesSpreadsheetTable() {
     const tableBody = document.getElementById("expensesTableBody");
     const totalFooterDisplay = document.getElementById("tableExpensesTotal");
+    const netBalanceDisplay = document.getElementById("tableNetBalanceTotal");
     
     if (!tableBody) return;
     
     tableBody.innerHTML = "";
     let totalAccumulatedSpent = 0;
 
+    // Calculate absolute gross revenue baseline from sales
+    const totalSalesRevenue = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+
     if (expensesList.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No operational expenses recorded yet. Database clear.</td></tr>`;
         if (totalFooterDisplay) totalFooterDisplay.innerText = "GH₵ 0.00";
+        if (netBalanceDisplay) {
+            netBalanceDisplay.innerText = `GH₵ ${totalSalesRevenue.toFixed(2)}`;
+            netBalanceDisplay.style.color = "#16a34a";
+        }
         return;
     }
 
@@ -225,9 +233,17 @@ function populateExpensesSpreadsheetTable() {
         `;
     });
 
-    // Update the spreadsheet total cash indicator instantly
+    // Dynamic Net Balance runway computation
+    const netBalanceLeft = totalSalesRevenue - totalAccumulatedSpent;
+    const balanceColor = netBalanceLeft < 0 ? "#dc2626" : "#16a34a";
+
+    // Push calculations smoothly to layout elements
     if (totalFooterDisplay) {
         totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
+    }
+    if (netBalanceDisplay) {
+        netBalanceDisplay.innerText = `GH₵ ${netBalanceLeft.toFixed(2)}`;
+        netBalanceDisplay.style.color = balanceColor;
     }
 }
 

@@ -91,7 +91,7 @@ function calculateAndPopulateDashboard() {
     if (document.getElementById("profitTotal")) document.getElementById("profitTotal").innerText = `GH₵ ${totalProfit.toFixed(2)}`;
 
     // =========================================================================
-    // FIXED METRIC STOCK INVENTORY CALCULATION ENGINE
+    // FIXED METRIC STOCK INVENTORY CALCULATION ENGINE (WITH CASUALTIES)
     // =========================================================================
     const stockTableBody = document.getElementById("stockTableBody");
     if (stockTableBody) {
@@ -112,7 +112,13 @@ function calculateAndPopulateDashboard() {
                 .filter(s => s.type === blockType)
                 .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
 
-            const currentStock = producedForType - soldForType;
+            // Track casualties / broken counts per type
+            const casualtiesForType = productionsList.length > 0 ? productionsList
+                .filter(p => p.type === blockType)
+                .reduce((sum, item) => sum + Number(item.casualties || 0), 0) : 0;
+
+            // Balanced Formula: Stock = Produced - Sold - Casualties
+            const currentStock = producedForType - soldForType - casualtiesForType;
             const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
 
             stockTableBody.innerHTML += `
@@ -120,10 +126,40 @@ function calculateAndPopulateDashboard() {
                     <td style="padding: 12px;"><b>${blockType}</b></td>
                     <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType.toLocaleString()} pcs</td>
+                    <td style="padding: 12px; color: #d97706; font-weight: 500;">- ${casualtiesForType.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock.toLocaleString()} left</td>
                 </tr>
             `;
         });
+    }
+
+    // =========================================================================
+    // LIVE CEMENT STOCK CALCULATION ENGINE
+    // =========================================================================
+    const cementTableBody = document.getElementById("cementTableBody");
+    if (cementTableBody) {
+        cementTableBody.innerHTML = "";
+
+        // Sum total bags used in factory batches
+        const totalBagsUsed = productionsList.length > 0 ? productionsList
+            .reduce((sum, item) => sum + Number(item.cementBags || 0), 0) : 0;
+
+        // Sum total bags purchased via expenses page
+        const totalBagsPurchased = expensesList.length > 0 ? expensesList
+            .filter(e => e.type === "Cement" || (e.description && e.description.toLowerCase().includes("cement")))
+            .reduce((sum, item) => sum + Number(item.bagsPurchased || item.quantity || 0), 0) : 0;
+
+        const cementLeft = totalBagsPurchased - totalBagsUsed;
+        const cementColor = cementLeft < 10 ? "#dc2626" : (cementLeft < 40 ? "#d97706" : "#16a34a");
+
+        cementTableBody.innerHTML = `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px;"><b>Standard Cement Bags</b></td>
+                <td style="padding: 12px; color: #16a34a; font-weight: 500;">+ ${totalBagsPurchased.toLocaleString()} bags</td>
+                <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${totalBagsUsed.toLocaleString()} bags</td>
+                <td style="padding: 12px; color: ${cementColor}; font-weight: bold;">${cementLeft.toLocaleString()} bags left</td>
+            </tr>
+        `;
     }
 
     // Recent Activities population
@@ -132,7 +168,7 @@ function calculateAndPopulateDashboard() {
         tableBody.innerHTML = "";
         
         const combinedActivities = [
-            ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
+            ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type} (Bags Used: ${p.cementBags || 0})`, amount: "-" })),
             ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
             ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` }))
         ];
@@ -143,9 +179,9 @@ function calculateAndPopulateDashboard() {
             combinedActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
             combinedActivities.slice(0, 15).forEach(act => {
                 tableBody.innerHTML += `<tr>
-                    <td>${act.date}</td>
-                    <td>${act.activity}</td>
-                    <td>${act.amount}</td>
+                    <td style="padding: 12px;">${act.date}</td>
+                    <td style="padding: 12px;">${act.activity}</td>
+                    <td style="padding: 12px;">${act.amount}</td>
                 </tr>`;
             });
         }
@@ -161,7 +197,7 @@ function buildCombinedReportData() {
             date: p.date,
             rawType: "production",
             typeDisplay: "🏭 Production",
-            details: `${p.amount} blocks (${p.type || 'Standard'}). Bags used: ${p.cementBags || 0}. ${p.remarks || ''}`,
+            details: `${p.amount} blocks (${p.type || 'Standard'}). Bags used: ${p.cementBags || 0}. Breakage: ${p.casualties || 0}. ${p.remarks || ''}`,
             amountDisplay: "-",
             numericAmount: 0
         })),
@@ -364,11 +400,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const btn = prodForm.querySelector("button");
             btn.disabled = true;
             try {
+                // Captures casualties field seamlessly if added to the form layout
+                const casualtiesInput = document.getElementById("quantityCasualties");
+                const casualtiesValue = casualtiesInput ? Number(casualtiesInput.value) : 0;
+
                 await addDoc(collection(db, "productions"), {
                     date: document.getElementById("productionDate").value,
                     type: document.getElementById("blockType").value,
                     amount: Number(document.getElementById("quantityProduced").value),
                     cementBags: Number(document.getElementById("cementBagsUsed").value),
+                    casualties: casualtiesValue, 
                     remarks: document.getElementById("remarks").value
                 });
                 alert("🏭 Production batch saved to cloud!");
@@ -409,12 +450,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const btn = expForm.querySelector("button");
             btn.disabled = true;
             try {
+                // Checks for bagsPurchased or quantity inputs on your expenses form
+                const bagsInput = document.getElementById("bagsPurchased") || document.getElementById("expenseQuantity");
+                const bagsValue = bagsInput ? Number(bagsInput.value) : 0;
+
                 await addDoc(collection(db, "expenses"), {
                     date: document.getElementById("expenseDate").value,
                     type: document.getElementById("expenseType").value,
                     description: document.getElementById("description").value,
                     amount: Number(document.getElementById("amount").value),
-                    paymentMethod: document.getElementById("paymentType").value
+                    paymentMethod: document.getElementById("paymentType").value,
+                    bagsPurchased: bagsValue
                 });
                 alert("📉 Expense recorded successfully!");
                 expForm.reset();

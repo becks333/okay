@@ -26,14 +26,14 @@ const auth = getAuth(app);
 let productionsList = [];
 let salesList = [];
 let expensesList = [];
+let casualtiesList = []; // Added for tracking independent casualty logs
 let reportData = []; // Combined formatted records for the reports page
 
 let currentPage = 1;
 
 // =========================================================================
-// 2. LIVE REAL-TIME SYNC (DASHBOARD, EXPENSES & REPORTS INITIALIZATION)
+// 2. LIVE REAL-TIME SYNC (DASHBOARD, EXPENSES, CASUALTIES & REPORTS)
 // =========================================================================
-// Trigger real-time streaming listeners
 onSnapshot(query(collection(db, "productions"), orderBy("date", "desc")), (snapshot) => {
     productionsList = snapshot.docs.map(doc => doc.data());
     handleDataUpdate();
@@ -49,11 +49,20 @@ onSnapshot(query(collection(db, "expenses"), orderBy("date", "desc")), (snapshot
     handleDataUpdate();
 });
 
+onSnapshot(query(collection(db, "casualties"), orderBy("date", "desc")), (snapshot) => {
+    casualtiesList = snapshot.docs.map(doc => doc.data());
+    handleDataUpdate();
+});
+
 // Runs whenever database updates to refresh whichever page is open
 function handleDataUpdate() {
     // If user is on Dashboard page
     if (document.getElementById("productionTotal") || document.querySelector("#recentActivitiesTable tbody") || document.getElementById("stockTableBody")) {
         calculateAndPopulateDashboard();
+    }
+    // If user is on Production entry page (populates the new casualties spreadsheet table)
+    if (document.getElementById("casualtiesTableBody")) {
+        populateCasualtiesSpreadsheetTable();
     }
     // If user is on Expenses entry page
     if (document.getElementById("expensesTableBody")) {
@@ -110,13 +119,19 @@ function calculateAndPopulateDashboard() {
                 .filter(s => s.type === blockType)
                 .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
 
-            // Track casualties / broken counts per type
-            const casualtiesForType = productionsList.length > 0 ? productionsList
+            // Merges inline structural legacy variables along with the explicit separate logs
+            const legacyCasualties = productionsList.length > 0 ? productionsList
                 .filter(p => p.type === blockType)
                 .reduce((sum, item) => sum + Number(item.casualties || 0), 0) : 0;
 
+            const loggedCasualties = casualtiesList.length > 0 ? casualtiesList
+                .filter(c => c.type === blockType)
+                .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
+
+            const totalCasualtiesForType = legacyCasualties + loggedCasualties;
+
             // Balanced Formula: Stock = Produced - Sold - Casualties
-            const currentStock = producedForType - soldForType - casualtiesForType;
+            const currentStock = producedForType - soldForType - totalCasualtiesForType;
             const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
 
             stockTableBody.innerHTML += `
@@ -124,7 +139,7 @@ function calculateAndPopulateDashboard() {
                     <td style="padding: 12px;"><b>${blockType}</b></td>
                     <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType.toLocaleString()} pcs</td>
-                    <td style="padding: 12px; color: #d97706; font-weight: 500;">- ${casualtiesForType.toLocaleString()} pcs</td>
+                    <td style="padding: 12px; color: #d97706; font-weight: 500;">- ${totalCasualtiesForType.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock.toLocaleString()} left</td>
                 </tr>
             `;
@@ -138,11 +153,9 @@ function calculateAndPopulateDashboard() {
     if (cementTableBody) {
         cementTableBody.innerHTML = "";
 
-        // Sum total bags used in factory batches
         const totalBagsUsed = productionsList.length > 0 ? productionsList
             .reduce((sum, item) => sum + Number(item.cementBags || 0), 0) : 0;
 
-        // Sum total bags purchased via expenses page
         const totalBagsPurchased = expensesList.length > 0 ? expensesList
             .filter(e => e.type === "Cement" || (e.description && e.description.toLowerCase().includes("cement")))
             .reduce((sum, item) => sum + Number(item.bagsPurchased || item.quantity || 0), 0) : 0;
@@ -166,9 +179,10 @@ function calculateAndPopulateDashboard() {
         tableBody.innerHTML = "";
         
         const combinedActivities = [
-            ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type} (Bags Used: ${p.cementBags || 0})`, amount: "-" })),
+            ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
             ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
-            ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` }))
+            ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` })),
+            ...casualtiesList.map(c => ({ date: c.date, activity: `💥 Damage logged: ${c.quantity} x ${c.type} (${c.reason})`, amount: "-" }))
         ];
 
         if (combinedActivities.length === 0) {
@@ -187,6 +201,32 @@ function calculateAndPopulateDashboard() {
 }
 
 // =========================================================================
+// REAL-TIME CASUALTIES SPREADSHEET TABLE POPULATION
+// =========================================================================
+function populateCasualtiesSpreadsheetTable() {
+    const tbody = document.getElementById("casualtiesTableBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (casualtiesList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#6b7280;">No breakage/casualties recorded yet.</td></tr>`;
+        return;
+    }
+
+    casualtiesList.forEach(item => {
+        tbody.innerHTML += `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px; color: #1e293b;">${item.date}</td>
+                <td style="padding: 12px; font-weight: 600; color: #1e293b;">${item.type}</td>
+                <td style="padding: 12px; color: #475569;"><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${item.reason}</span></td>
+                <td style="padding: 12px; font-weight: bold; color: #b45309;">- ${Number(item.quantity).toLocaleString()} pcs</td>
+            </tr>
+        `;
+    });
+}
+
+// =========================================================================
 // REAL-TIME EXPENSES SPREADSHEET BUILDER WITH NET BALANCE FLOW ENGINE
 // =========================================================================
 function populateExpensesSpreadsheetTable() {
@@ -199,7 +239,6 @@ function populateExpensesSpreadsheetTable() {
     tableBody.innerHTML = "";
     let totalAccumulatedSpent = 0;
 
-    // Calculate absolute gross revenue baseline from sales
     const totalSalesRevenue = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
 
@@ -228,11 +267,9 @@ function populateExpensesSpreadsheetTable() {
         `;
     });
 
-    // Balanced Balance computation factoring setup capital values
     const netBalanceLeft = startingCapital + totalSalesRevenue - totalAccumulatedSpent;
     const balanceColor = netBalanceLeft < 0 ? "#dc2626" : "#16a34a";
 
-    // Push calculations smoothly to layout elements
     if (totalFooterDisplay) {
         totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
     }
@@ -251,7 +288,7 @@ function buildCombinedReportData() {
             date: p.date,
             rawType: "production",
             typeDisplay: "🏭 Production",
-            details: `${p.amount} blocks (${p.type || 'Standard'}). Bags used: ${p.cementBags || 0}. Breakage: ${p.casualties || 0}. ${p.remarks || ''}`,
+            details: `${p.amount} blocks (${p.type || 'Standard'}). Bags used: ${p.cementBags || 0}. ${p.remarks || ''}`,
             amountDisplay: "-",
             numericAmount: 0
         })),
@@ -270,6 +307,14 @@ function buildCombinedReportData() {
             details: `[${e.type}] ${e.description} (${e.paymentMethod || 'Cash'})`,
             amountDisplay: `GH₵ ${Number(e.amount).toFixed(2)}`,
             numericAmount: Number(e.amount || 0)
+        })),
+        ...casualtiesList.map(c => ({
+            date: c.date,
+            rawType: "casualties",
+            typeDisplay: "💥 Casualty Log",
+            details: `Damaged/Broken: ${c.quantity} x ${c.type} | Reason: ${c.reason}`,
+            amountDisplay: "-",
+            numericAmount: 0
         }))
     ];
     
@@ -330,7 +375,6 @@ function applyReportFilters() {
 // 4. FORMS SUBMISSIONS & EVENT LISTENERS
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
-    // Synchronize and render current opening setup variables if found
     const capitalInput = document.getElementById('startingCapital');
     const saveCapitalBtn = document.getElementById('saveCapitalBtn');
     
@@ -391,9 +435,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // =========================================================================
-    // SYSTEM SETTINGS DROPDOWN ACCORDION TOGGLE
-    // =========================================================================
     const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
     const settingsPanel = document.getElementById("settingsPanel");
     const dropdownArrow = document.getElementById("dropdownArrow");
@@ -412,9 +453,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // =========================================================================
-    // SECURE SIDEBAR LOGOUT ACTION HANDLER
-    // =========================================================================
     const logoutBtn = document.getElementById("sidebarLogoutBtn");
     if (logoutBtn) {
         logoutBtn.addEventListener("click", (e) => {
@@ -427,13 +465,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // =========================================================================
-    // DANGER ZONE: DATABASE DELETION ENGINE
-    // =========================================================================
+    // DANGER ZONE: PURGE SYSTEM
     const resetDbBtn = document.getElementById("resetDbBtn");
     if (resetDbBtn) {
         resetDbBtn.addEventListener("click", async () => {
-            const firstWarning = confirm("⚠️ WARNING: You are about to completely wipe the factory database. This will delete all Production logs, Sales sheets, and Expense reports. Proceed?");
+            const firstWarning = confirm("⚠️ WARNING: You are about to completely wipe the factory database. This will delete all Production logs, Sales sheets, Casualties, and Expense reports. Proceed?");
             if (!firstWarning) return;
 
             const finalConfirmation = prompt("To confirm absolute destruction of all records, type 'DELETE' below:");
@@ -446,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
             resetDbBtn.innerText = "⏳ Purging Cloud...";
 
             try {
-                const collectionsToClear = ["productions", "sales", "expenses"];
+                const collectionsToClear = ["productions", "sales", "expenses", "casualties"];
                 
                 for (const colName of collectionsToClear) {
                     const querySnapshot = await getDocs(collection(db, colName));
@@ -454,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     await Promise.all(deletePromises);
                 }
 
-                localStorage.removeItem('startingCapital'); // Purge running cash on system clearout reset
+                localStorage.removeItem('startingCapital'); 
                 alert("🗑️ Database successfully purged! The system has reset back to clean slate settings.");
                 window.location.reload();
             } catch (err) {
@@ -465,6 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // PRODUCTION SUBMIT
     const prodForm = document.getElementById("productionForm");
     if (prodForm) {
         prodForm.addEventListener("submit", async (e) => {
@@ -472,15 +509,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const btn = prodForm.querySelector("button");
             btn.disabled = true;
             try {
-                const casualtiesInput = document.getElementById("quantityCasualties");
-                const casualtiesValue = casualtiesInput ? Number(casualtiesInput.value) : 0;
-
                 await addDoc(collection(db, "productions"), {
                     date: document.getElementById("productionDate").value,
                     type: document.getElementById("blockType").value,
                     amount: Number(document.getElementById("quantityProduced").value),
                     cementBags: Number(document.getElementById("cementBagsUsed").value),
-                    casualties: casualtiesValue, 
                     remarks: document.getElementById("remarks").value
                 });
                 alert("🏭 Production batch saved to cloud!");
@@ -490,6 +523,28 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // NEW CASUALTIES FORM SUBMIT
+    const casualtiesForm = document.getElementById("casualtiesForm");
+    if (casualtiesForm) {
+        casualtiesForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = casualtiesForm.querySelector("button");
+            btn.disabled = true;
+            try {
+                await addDoc(collection(db, "casualties"), {
+                    date: document.getElementById("casualtyDate").value,
+                    type: document.getElementById("casualtyBlockType").value,
+                    quantity: Number(document.getElementById("quantityBroken").value),
+                    reason: document.getElementById("damageReason").value
+                });
+                alert("💥 Casualties & Breakage logged successfully!");
+                casualtiesForm.reset();
+            } catch (err) { alert("Error saving casualty log: " + err.message); }
+            btn.disabled = false;
+        });
+    }
+
+    // SALES SUBMIT
     const salesForm = document.getElementById("salesForm");
     if (salesForm) {
         salesForm.addEventListener("submit", async (e) => {
@@ -514,6 +569,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // EXPENSES SUBMIT
     const expForm = document.getElementById("expensesForm");
     if (expForm) {
         expForm.addEventListener("submit", async (e) => {

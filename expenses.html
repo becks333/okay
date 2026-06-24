@@ -47,6 +47,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="bagsPurchased">🛒 Bags Purchased (If Cement)</label>
+                    <input type="number" id="bagsPurchased" name="bagsPurchased" min="0" placeholder="e.g., 50">
+                </div>
+
+                <div class="form-group">
                     <label for="amount">💵 Amount (GH₵) <span style="color:#ef4444">*</span></label>
                     <input type="number" id="amount" name="amount" min="0" step="0.01" placeholder="Enter amount" required>
                 </div>
@@ -63,6 +68,37 @@
 
                 <button type="submit">✓ Save Expense</button>
             </form>
+        </div>
+
+        <header style="margin-top: 28px;">
+            <h1>📉 Logged Expense Records</h1>
+        </header>
+
+        <div class="form-container" style="margin-bottom: 40px;">
+            <table id="expensesTable" style="width:100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #1e40af; border-bottom: 2px solid #1d4ed8;">
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📅 Date</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📂 Category</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">📝 Description</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">💳 Method</th>
+                        <th style="padding: 12px; text-align: left; color: #ffffff !important; font-weight: bold;">💵 Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="expensesTableBody">
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:20px; color:#888;">
+                            Loading live expense records...
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f8fafc; border-top: 3px solid #1e40af; font-weight: bold;">
+                        <td colspan="4" style="padding: 14px; text-align: right; color: #1e293b; font-size: 15px;">Total Money Spent:</td>
+                        <td id="tableExpensesTotal" style="padding: 14px; text-align: left; color: #dc2626; font-size: 16px;">GH₵ 0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
     </div>
 

@@ -1,99 +1,156 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Habib Blocks Management System</title>
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:'Segoe UI',sans-serif;
+        }
 
-```
-<style>
-    *{
-        margin:0;
-        padding:0;
-        box-sizing:border-box;
-        font-family:'Segoe UI',sans-serif;
-    }
+        body{
+            background:linear-gradient(135deg,#0f172a,#1e293b);
+            color:white;
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        }
 
-    body{
-        background:linear-gradient(135deg,#0f172a,#1e293b);
-        color:white;
-        min-height:100vh;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-    }
+        .container{
+            text-align:center;
+            max-width:800px;
+            padding:40px;
+        }
 
-    .container{
-        text-align:center;
-        max-width:800px;
-        padding:40px;
-    }
+        h1{
+            font-size:3rem;
+            margin-bottom:15px;
+        }
 
-    h1{
-        font-size:3rem;
-        margin-bottom:15px;
-    }
+        p{
+            font-size:1.1rem;
+            color:#cbd5e1;
+            margin-bottom:30px;
+        }
 
-    p{
-        font-size:1.1rem;
-        color:#cbd5e1;
-        margin-bottom:30px;
-    }
+        /* SECURE AUTH LOGIN CARD STYLE */
+        .auth-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 420px;
+            margin: 0 auto 40px auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
 
-    .btn{
-        display:inline-block;
-        padding:15px 35px;
-        background:#2563eb;
-        color:white;
-        text-decoration:none;
-        border-radius:10px;
-        font-size:18px;
-        transition:.3s;
-    }
+        .input-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
 
-    .btn:hover{
-        background:#1d4ed8;
-    }
+        .input-group label {
+            display: block;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
 
-    .features{
-        margin-top:50px;
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-        gap:20px;
-    }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+        }
 
-    .card{
-        background:rgba(255,255,255,0.08);
-        padding:20px;
-        border-radius:15px;
-        backdrop-filter:blur(10px);
-    }
+        .input-group input:focus {
+            border-color: #2563eb;
+        }
 
-    .card h3{
-        margin-bottom:10px;
-    }
-</style>
-```
+        .btn{
+            width: 100%;
+            border: none;
+            display:inline-block;
+            padding:14px;
+            background:#2563eb;
+            color:white;
+            border-radius:8px;
+            font-size:16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition:.3s;
+        }
 
+        .btn:hover{
+            background:#1d4ed8;
+        }
+
+        .btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .error-msg {
+            color: #f87171;
+            font-size: 14px;
+            margin-top: 12px;
+            display: none;
+            text-align: center;
+        }
+
+        .features{
+            margin-top:50px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+            gap:20px;
+        }
+
+        .card{
+            background:rgba(255,255,255,0.08);
+            padding:20px;
+            border-radius:15px;
+            backdrop-filter:blur(10px);
+        }
+
+        .card h3{
+            margin-bottom:10px;
+        }
+    </style>
 </head>
 <body>
 
-```
 <div class="container">
 
     <h1>Habib Blocks</h1>
+    <p>Production, Sales, Expenses and Profit Tracking System</p>
 
-    <p>
-        Production, Sales, Expenses and Profit Tracking System
-    </p>
-
-    <a href="dashboard.html" class="btn">
-        Enter Dashboard
-    </a>
+    <div class="auth-card">
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Manager Email</label>
+                <input type="email" id="loginEmail" required placeholder="manager@habibblocks.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn" id="loginBtn">Secure Sign In</button>
+            <div class="error-msg" id="errorMsg">Invalid login credentials. Access denied.</div>
+        </form>
+    </div>
 
     <div class="features">
-
         <div class="card">
             <h3>Production</h3>
             <p>Track daily block production records.</p>
@@ -113,11 +170,51 @@
             <h3>Reports</h3>
             <p>Generate weekly and monthly reports.</p>
         </div>
-
     </div>
 
 </div>
-```
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBXRkfeV2yfGukkzTxR2SdNF-T1W6c3hcE",
+        authDomain: "habib-blocks.firebaseapp.com",
+        projectId: "habib-blocks",
+        storageBucket: "habib-blocks.firebasestorage.app",
+        messagingSenderId: "648682421423",
+        appId: "1:648682421423:web:346671280bbeda2c37e85a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const loginForm = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+    const loginBtn = document.getElementById("loginBtn");
+
+    loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        loginBtn.disabled = true;
+        loginBtn.innerText = "Verifying keys...";
+        errorMsg.style.display = "none";
+
+        const email = document.getElementById("loginEmail").value.trim();
+        const pass = document.getElementById("loginPassword").value;
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            // On success, redirect to dashboard
+            window.location.href = "dashboard.html";
+        } catch (error) {
+            console.error(error);
+            errorMsg.style.display = "block";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Secure Sign In";
+        }
+    });
+</script>
 
 </body>
 </html>

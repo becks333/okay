@@ -22,12 +22,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// GLOBAL SECURITY ACTION: Protect operational sheets from external URLs
-onAuthStateChanged(auth, (user) => {
-    // If the user isn't logged in, instantly kick them back to index.html
-    if (!user) {
-        window.location.href = "index.html";
-    }
 });
 
 // Global lists to store cloud data locally for filtering

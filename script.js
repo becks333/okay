@@ -72,27 +72,21 @@ function calculateAndPopulateDashboard() {
     const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     
-    // 2. FIXED MARGIN PROFIT ENGINE: Calculate true net profit based on product categories sold
-    let totalProfit = 0;
+    // 2. OPENING CAPITAL BRIDGE: Fetch starting cash position from local memory
+    const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
     
-    salesList.forEach(sale => {
-        const quantity = Number(sale.quantity || 0);
-        const blockType = sale.type;
-
-        if (blockType === "Solid 6 inches") {
-            totalProfit += (quantity * 1.50);
-        } else if (blockType === "Solid 5 inches") {
-            totalProfit += (quantity * 2.00);
-        } else if (blockType === "Hollow 5 inches") {
-            totalProfit += (quantity * 2.40);
-        }
-    });
+    // Core Running Runway Math Model: Capital + Sales Revenue - Active Spending
+    const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
 
     // 3. Populate metrics elements smoothly onto the Dashboard UI
     if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks} Blocks`;
     if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
-    if (document.getElementById("profitTotal")) document.getElementById("profitTotal").innerText = `GH₵ ${totalProfit.toFixed(2)}`;
+    
+    if (document.getElementById("profitTotal")) {
+        document.getElementById("profitTotal").innerText = `GH₵ ${netCashBalanceLeft.toFixed(2)}`;
+        document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#16a34a";
+    }
 
     // =========================================================================
     // FIXED METRIC STOCK INVENTORY CALCULATION ENGINE (WITH CASUALTIES)
@@ -207,12 +201,13 @@ function populateExpensesSpreadsheetTable() {
 
     // Calculate absolute gross revenue baseline from sales
     const totalSalesRevenue = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
 
     if (expensesList.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No operational expenses recorded yet. Database clear.</td></tr>`;
         if (totalFooterDisplay) totalFooterDisplay.innerText = "GH₵ 0.00";
         if (netBalanceDisplay) {
-            netBalanceDisplay.innerText = `GH₵ ${totalSalesRevenue.toFixed(2)}`;
+            netBalanceDisplay.innerText = `GH₵ ${(startingCapital + totalSalesRevenue).toFixed(2)}`;
             netBalanceDisplay.style.color = "#16a34a";
         }
         return;
@@ -233,8 +228,8 @@ function populateExpensesSpreadsheetTable() {
         `;
     });
 
-    // Dynamic Net Balance runway computation
-    const netBalanceLeft = totalSalesRevenue - totalAccumulatedSpent;
+    // Balanced Balance computation factoring setup capital values
+    const netBalanceLeft = startingCapital + totalSalesRevenue - totalAccumulatedSpent;
     const balanceColor = netBalanceLeft < 0 ? "#dc2626" : "#16a34a";
 
     // Push calculations smoothly to layout elements
@@ -335,6 +330,23 @@ function applyReportFilters() {
 // 4. FORMS SUBMISSIONS & EVENT LISTENERS
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
+    // Synchronize and render current opening setup variables if found
+    const capitalInput = document.getElementById('startingCapital');
+    const saveCapitalBtn = document.getElementById('saveCapitalBtn');
+    
+    if (capitalInput && localStorage.getItem('startingCapital')) {
+        capitalInput.value = localStorage.getItem('startingCapital');
+    }
+
+    if (saveCapitalBtn) {
+        saveCapitalBtn.addEventListener('click', () => {
+            const amount = parseFloat(capitalInput.value) || 0;
+            localStorage.setItem('startingCapital', amount);
+            alert('🚀 Opening Capital Balance loaded successfully! Refreshing running balance matrix...');
+            handleDataUpdate();
+        });
+    }
+
     const qtyInput = document.getElementById("quantity");
     const priceInput = document.getElementById("price");
     const totalInput = document.getElementById("total");
@@ -442,6 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     await Promise.all(deletePromises);
                 }
 
+                localStorage.removeItem('startingCapital'); // Purge running cash on system clearout reset
                 alert("🗑️ Database successfully purged! The system has reset back to clean slate settings.");
                 window.location.reload();
             } catch (err) {

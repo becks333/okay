@@ -48,7 +48,7 @@ onSnapshot(query(collection(db, "expenses"), orderBy("date", "desc")), (snapshot
 // Runs whenever database updates to refresh whichever page is open
 function handleDataUpdate() {
     // If user is on Dashboard page
-    if (document.getElementById("productionTotal") || document.querySelector("#recentActivitiesTable tbody")) {
+    if (document.getElementById("productionTotal") || document.querySelector("#recentActivitiesTable tbody") || document.getElementById("stockTableBody")) {
         calculateAndPopulateDashboard();
     }
     // If user is on Reports page
@@ -69,6 +69,52 @@ function calculateAndPopulateDashboard() {
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
     if (document.getElementById("profitTotal")) document.getElementById("profitTotal").innerText = `GH₵ ${totalProfit.toFixed(2)}`;
 
+    // =========================================================================
+    // DYNAMIC STOCK INVENTORY CALCULATION ENGINE
+    // =========================================================================
+    const stockTableBody = document.getElementById("stockTableBody");
+    if (stockTableBody) {
+        stockTableBody.innerHTML = ""; // Clear old calculation loops
+        
+        // Extract every single unique block size entered across records
+        const allBlockTypes = new Set([
+            ...productionsList.map(p => p.type).filter(Boolean),
+            ...salesList.map(s => s.type).filter(Boolean)
+        ]);
+
+        allBlockTypes.forEach(blockType => {
+            // Sum all matching quantities for this block type from production runs
+            const producedForType = productionsList
+                .filter(p => p.type === blockType)
+                .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+            // Sum all matching items delivered/sold to clients for this size
+            const soldForType = salesList
+                .filter(s => s.type === blockType)
+                .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+            // Math execution: Available Inventory = Total Produced - Total Sold
+            const currentStock = producedForType - soldForType;
+            
+            // Adjust text colors contextually based on remaining yard supply
+            const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
+
+            stockTableBody.innerHTML += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px;"><b>${blockType}</b></td>
+                    <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType} pcs</td>
+                    <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType} pcs</td>
+                    <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock} left</td>
+                </tr>
+            `;
+        });
+        
+        if (allBlockTypes.size === 0) {
+            stockTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">No manufacturing data logged in the database yet.</td></tr>`;
+        }
+    }
+
+    // Recent Activities population
     const combinedActivities = [
         ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
         ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
@@ -121,7 +167,6 @@ function buildCombinedReportData() {
         }))
     ];
     
-    // Sort all records chronologically by default (Newest First)
     reportData.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
@@ -132,26 +177,18 @@ function applyReportFilters() {
     const searchQuery = document.getElementById("q").value.toLowerCase().trim();
     const pageSize = Number(document.getElementById("pageSize").value) || 50;
 
-    // Filter by Entry Type
     let filtered = reportData;
     if (typeFilter !== "all" && typeFilter !== "activities") {
         filtered = filtered.filter(item => item.rawType === typeFilter);
     }
 
-    // Filter by Date Ranges
-    if (dateFrom) {
-        filtered = filtered.filter(item => item.date >= dateFrom);
-    }
-    if (dateTo) {
-        filtered = filtered.filter(item => item.date <= dateTo);
-    }
+    if (dateFrom) filtered = filtered.filter(item => item.date >= dateFrom);
+    if (dateTo) filtered = filtered.filter(item => item.date <= dateTo);
 
-    // Filter by Search Query matching text inside details
     if (searchQuery) {
         filtered = filtered.filter(item => item.details.toLowerCase().includes(searchQuery));
     }
 
-    // Paginate results block
     const totalItems = filtered.length;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
     if (currentPage > totalPages) currentPage = totalPages;
@@ -160,7 +197,6 @@ function applyReportFilters() {
     const endIdx = startIdx + pageSize;
     const pageData = filtered.slice(startIdx, endIdx);
 
-    // Render to page table body
     const tbody = document.getElementById("reportsBody");
     if (tbody) {
         tbody.innerHTML = "";
@@ -178,7 +214,6 @@ function applyReportFilters() {
         }
     }
 
-    // Update Pagination Indicators
     const pageInfo = document.getElementById("pageInfo");
     if (pageInfo) {
         pageInfo.innerText = `Page ${currentPage} of ${totalPages} (${totalItems} total entries)`;
@@ -189,7 +224,6 @@ function applyReportFilters() {
 // 4. FORMS SUBMISSIONS & EVENT LISTENERS
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
-    // Interactive sales amount counter
     const qtyInput = document.getElementById("quantity");
     const priceInput = document.getElementById("price");
     const totalInput = document.getElementById("total");
@@ -204,11 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
         priceInput.addEventListener("input", updateTotal);
     }
 
-    // Reports Interface Buttons Event Bindings
     const applyBtn = document.getElementById("applyFilters");
     if (applyBtn) {
         applyBtn.addEventListener("click", () => {
-            currentPage = 1; // Reset to page 1 upon search filter execution
+            currentPage = 1;
             applyReportFilters();
         });
     }
@@ -235,7 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Entry Submissions Code
     const prodForm = document.getElementById("productionForm");
     if (prodForm) {
         prodForm.addEventListener("submit", async (e) => {

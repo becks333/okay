@@ -31,7 +31,7 @@ let reportData = []; // Combined formatted records for the reports page
 let currentPage = 1;
 
 // =========================================================================
-// 2. LIVE REAL-TIME SYNC (DASHBOARD & REPORTS INITIALIZATION)
+// 2. LIVE REAL-TIME SYNC (DASHBOARD, EXPENSES & REPORTS INITIALIZATION)
 // =========================================================================
 // Trigger real-time streaming listeners
 onSnapshot(query(collection(db, "productions"), orderBy("date", "desc")), (snapshot) => {
@@ -54,6 +54,10 @@ function handleDataUpdate() {
     // If user is on Dashboard page
     if (document.getElementById("productionTotal") || document.querySelector("#recentActivitiesTable tbody") || document.getElementById("stockTableBody")) {
         calculateAndPopulateDashboard();
+    }
+    // If user is on Expenses entry page
+    if (document.getElementById("expensesTableBody")) {
+        populateExpensesSpreadsheetTable();
     }
     // If user is on Reports page
     if (document.getElementById("reportsTable")) {
@@ -185,6 +189,45 @@ function calculateAndPopulateDashboard() {
                 </tr>`;
             });
         }
+    }
+}
+
+// =========================================================================
+// REAL-TIME EXPENSES SPREADSHEET BUILDER WITH GRAND TOTAL CASH FLOW ENGINE
+// =========================================================================
+function populateExpensesSpreadsheetTable() {
+    const tableBody = document.getElementById("expensesTableBody");
+    const totalFooterDisplay = document.getElementById("tableExpensesTotal");
+    
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = "";
+    let totalAccumulatedSpent = 0;
+
+    if (expensesList.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No operational expenses recorded yet. Database clear.</td></tr>`;
+        if (totalFooterDisplay) totalFooterDisplay.innerText = "GH₵ 0.00";
+        return;
+    }
+
+    expensesList.forEach(expense => {
+        const numericAmount = Number(expense.amount || 0);
+        totalAccumulatedSpent += numericAmount;
+
+        tableBody.innerHTML += `
+            <tr style="border-bottom: 1px solid #e2e8f0; hover: background-color: #f8fafc;">
+                <td style="padding: 12px; color: #1e293b;">${expense.date}</td>
+                <td style="padding: 12px; color: #1e40af; font-weight: 600;">${expense.type}</td>
+                <td style="padding: 12px; color: #475569;">${expense.description}</td>
+                <td style="padding: 12px; color: #64748b;"><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${expense.paymentMethod || 'Cash'}</span></td>
+                <td style="padding: 12px; font-weight: bold; color: #dc2626;">GH₵ ${numericAmount.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    // Update the spreadsheet total cash indicator instantly
+    if (totalFooterDisplay) {
+        totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
     }
 }
 
@@ -400,7 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const btn = prodForm.querySelector("button");
             btn.disabled = true;
             try {
-                // Captures casualties field seamlessly if added to the form layout
                 const casualtiesInput = document.getElementById("quantityCasualties");
                 const casualtiesValue = casualtiesInput ? Number(casualtiesInput.value) : 0;
 
@@ -450,7 +492,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const btn = expForm.querySelector("button");
             btn.disabled = true;
             try {
-                // Checks for bagsPurchased or quantity inputs on your expenses form
                 const bagsInput = document.getElementById("bagsPurchased") || document.getElementById("expenseQuantity");
                 const bagsValue = bagsInput ? Number(bagsInput.value) : 0;
 

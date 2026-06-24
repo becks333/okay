@@ -59,9 +59,10 @@ function handleDataUpdate() {
 }
 
 function calculateAndPopulateDashboard() {
-    const totalBlocks = productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const totalSales = salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const totalExpenses = expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    // Force direct fallback zero numbers if arrays are empty post-wipe
+    const totalBlocks = productionsList.length > 0 ? productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalProfit = totalSales - totalExpenses;
 
     if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks} Blocks`;
@@ -74,9 +75,8 @@ function calculateAndPopulateDashboard() {
     // =========================================================================
     const stockTableBody = document.getElementById("stockTableBody");
     if (stockTableBody) {
-        stockTableBody.innerHTML = ""; // Clear old calculation loops
+        stockTableBody.innerHTML = ""; // Clear old loops
         
-        // The 3 exact standard block products from your yard spreadsheet
         const standardYardProducts = [
             "Hollow 5 inches",
             "Solid 5 inches",
@@ -84,20 +84,15 @@ function calculateAndPopulateDashboard() {
         ];
 
         standardYardProducts.forEach(blockType => {
-            // Sum all production matches for this strict type name
-            const producedForType = productionsList
+            const producedForType = productionsList.length > 0 ? productionsList
                 .filter(p => p.type === blockType)
-                .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+                .reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
 
-            // Sum all sales matches for this strict type name
-            const soldForType = salesList
+            const soldForType = salesList.length > 0 ? salesList
                 .filter(s => s.type === blockType)
-                .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+                .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
 
-            // Core Inventory Equation
             const currentStock = producedForType - soldForType;
-            
-            // Text coloring based on available yard supply levels
             const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
 
             stockTableBody.innerHTML += `
@@ -112,24 +107,28 @@ function calculateAndPopulateDashboard() {
     }
 
     // Recent Activities population
-    const combinedActivities = [
-        ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
-        ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
-        ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` }))
-    ];
-
-    combinedActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
-
     const tableBody = document.querySelector("#recentActivitiesTable tbody");
     if (tableBody) {
         tableBody.innerHTML = "";
-        combinedActivities.slice(0, 15).forEach(act => {
-            tableBody.innerHTML += `<tr>
-                <td>${act.date}</td>
-                <td>${act.activity}</td>
-                <td>${act.amount}</td>
-            </tr>`;
-        });
+        
+        const combinedActivities = [
+            ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
+            ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
+            ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` }))
+        ];
+
+        if (combinedActivities.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:15px; color:#888;">No historical activities logged yet. Database clean.</td></tr>`;
+        } else {
+            combinedActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
+            combinedActivities.slice(0, 15).forEach(act => {
+                tableBody.innerHTML += `<tr>
+                    <td>${act.date}</td>
+                    <td>${act.activity}</td>
+                    <td>${act.amount}</td>
+                </tr>`;
+            });
+        }
     }
 }
 

@@ -52,6 +52,30 @@
         </div>
 
         <header style="margin-top: 28px;">
+            <h1>🏗️ Live Yard Stock Levels</h1>
+        </header>
+
+        <div class="form-container" style="margin-bottom: 28px;">
+            <table id="stockTable" style="width:100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #f3f4f6;">
+                        <th style="padding: 12px; text-align: left;">Block Type</th>
+                        <th style="padding: 12px; text-align: left;">Total Produced (+)</th>
+                        <th style="padding: 12px; text-align: left;">Total Sold (-)</th>
+                        <th style="padding: 12px; text-align: left;">Available Stock</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding:20px; color:#888;">
+                            Calculating active inventory counts...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <header style="margin-top: 28px;">
             <h1>Recent Activities</h1>
         </header>
 
@@ -70,6 +94,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

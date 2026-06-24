@@ -70,48 +70,45 @@ function calculateAndPopulateDashboard() {
     if (document.getElementById("profitTotal")) document.getElementById("profitTotal").innerText = `GH₵ ${totalProfit.toFixed(2)}`;
 
     // =========================================================================
-    // DYNAMIC STOCK INVENTORY CALCULATION ENGINE
+    // FIXED METRIC STOCK INVENTORY CALCULATION ENGINE
     // =========================================================================
     const stockTableBody = document.getElementById("stockTableBody");
     if (stockTableBody) {
         stockTableBody.innerHTML = ""; // Clear old calculation loops
         
-        // Extract every single unique block size entered across records
-        const allBlockTypes = new Set([
-            ...productionsList.map(p => p.type).filter(Boolean),
-            ...salesList.map(s => s.type).filter(Boolean)
-        ]);
+        // The 3 exact standard block products from your yard spreadsheet
+        const standardYardProducts = [
+            "Hollow 5 inches",
+            "Solid 5 inches",
+            "Solid 6 inches"
+        ];
 
-        allBlockTypes.forEach(blockType => {
-            // Sum all matching quantities for this block type from production runs
+        standardYardProducts.forEach(blockType => {
+            // Sum all production matches for this strict type name
             const producedForType = productionsList
                 .filter(p => p.type === blockType)
                 .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-            // Sum all matching items delivered/sold to clients for this size
+            // Sum all sales matches for this strict type name
             const soldForType = salesList
                 .filter(s => s.type === blockType)
                 .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
-            // Math execution: Available Inventory = Total Produced - Total Sold
+            // Core Inventory Equation
             const currentStock = producedForType - soldForType;
             
-            // Adjust text colors contextually based on remaining yard supply
+            // Text coloring based on available yard supply levels
             const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
 
             stockTableBody.innerHTML += `
                 <tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 12px;"><b>${blockType}</b></td>
-                    <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType} pcs</td>
-                    <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType} pcs</td>
-                    <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock} left</td>
+                    <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType.toLocaleString()} pcs</td>
+                    <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType.toLocaleString()} pcs</td>
+                    <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock.toLocaleString()} left</td>
                 </tr>
             `;
         });
-        
-        if (allBlockTypes.size === 0) {
-            stockTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">No manufacturing data logged in the database yet.</td></tr>`;
-        }
     }
 
     // Recent Activities population

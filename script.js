@@ -84,6 +84,9 @@ function calculateAndPopulateDashboard() {
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
+    
+    // Core accounting split calculations
+    const pureOperationalProfit = totalSales - totalExpenses;
     const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
 
     // Display summary data cleanly 
@@ -91,9 +94,16 @@ function calculateAndPopulateDashboard() {
     if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
     
+    // Write Operational Profit (Pure business earnings)
+    if (document.getElementById("pureProfitTotal")) {
+        document.getElementById("pureProfitTotal").innerText = `GH₵ ${pureOperationalProfit.toFixed(2)}`;
+        document.getElementById("pureProfitTotal").style.color = pureOperationalProfit < 0 ? "#dc2626" : "#16a34a";
+    }
+
+    // Write Net Cash Balance (Total available workspace drawer fund)
     if (document.getElementById("profitTotal")) {
         document.getElementById("profitTotal").innerText = `GH₵ ${netCashBalanceLeft.toFixed(2)}`;
-        document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#16a34a";
+        document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#2563eb";
     }
 
     // -------------------------------------------------------------------------

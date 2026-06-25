@@ -82,25 +82,70 @@ function calculateAndPopulateDashboard() {
     const totalBlocks = productionsList.length > 0 ? productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const totalBlocksSold = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
     
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
     
     // Core accounting split calculations
-    const pureOperationalProfit = totalSales - totalExpenses;
     const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
+
+    // Calculate Sales Profit per single block (Total Sales Revenue / Total Physical Blocks Sold)
+    const salesProfitPerBlock = totalBlocksSold > 0 ? (totalSales / totalBlocksSold) : 0;
+
+    // Time-Filtered Date Math setups (7 days and 30 days boundaries)
+    const today = new Date();
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(today.getDate() - 7);
+    
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(today.getDate() - 30);
+
+    let weeklySales = 0;
+    let monthlySales = 0;
+    let weeklyExpenses = 0;
+    let monthlyExpenses = 0;
+
+    // Aggregate filtered timeframe totals
+    salesList.forEach(s => {
+        if (!s.date) return;
+        const logDate = new Date(s.date);
+        if (logDate >= oneWeekAgo && logDate <= today) weeklySales += Number(s.amount || 0);
+        if (logDate >= oneMonthAgo && logDate <= today) monthlySales += Number(s.amount || 0);
+    });
+
+    expensesList.forEach(e => {
+        if (!e.date) return;
+        const logDate = new Date(e.date);
+        if (logDate >= oneWeekAgo && logDate <= today) weeklyExpenses += Number(e.amount || 0);
+        if (logDate >= oneMonthAgo && logDate <= today) monthlyExpenses += Number(e.amount || 0);
+    });
+
+    const weeklyProfit = weeklySales - weeklyExpenses;
+    const monthlyProfit = monthlySales - monthlyExpenses;
 
     // Display summary data cleanly 
     if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks.toLocaleString()} Blocks`;
     if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
     
-    // Write Operational Profit (Pure business earnings)
-    if (document.getElementById("pureProfitTotal")) {
-        document.getElementById("pureProfitTotal").innerText = `GH₵ ${pureOperationalProfit.toFixed(2)}`;
-        document.getElementById("pureProfitTotal").style.color = pureOperationalProfit < 0 ? "#dc2626" : "#16a34a";
+    // Write Sales Profit per Block Metric
+    if (document.getElementById("salesProfitTotal")) {
+        document.getElementById("salesProfitTotal").innerText = `GH₵ ${salesProfitPerBlock.toFixed(2)} / blk`;
+        document.getElementById("salesProfitTotal").style.color = salesProfitPerBlock <= 0 ? "#dc2626" : "#16a34a";
     }
 
-    // Write Net Cash Balance (Total available workspace drawer fund)
+    // Write Rolling Time-frame Window Profits
+    if (document.getElementById("weeklyProfitTotal")) {
+        document.getElementById("weeklyProfitTotal").innerText = `GH₵ ${weeklyProfit.toFixed(2)}`;
+        document.getElementById("weeklyProfitTotal").style.color = weeklyProfit < 0 ? "#dc2626" : "#16a34a";
+    }
+    if (document.getElementById("monthlyProfitTotal")) {
+        document.getElementById("monthlyProfitTotal").innerText = `GH₵ ${monthlyProfit.toFixed(2)}`;
+        document.getElementById("monthlyProfitTotal").style.color = monthlyProfit < 0 ? "#dc2626" : "#16a34a";
+    }
+
+    // Write Net Cash Balance (Total available workspace fund drawer unchanged)
     if (document.getElementById("profitTotal")) {
         document.getElementById("profitTotal").innerText = `GH₵ ${netCashBalanceLeft.toFixed(2)}`;
         document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#2563eb";
@@ -267,7 +312,7 @@ function populateCasualtiesSpreadsheetTable() {
         return;
     }
 
-    casualtiesList.forEach(item => {
+    utilitiesList.forEach(item => {
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px; color: #1e293b;">${item.date}</td>

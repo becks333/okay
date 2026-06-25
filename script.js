@@ -75,22 +75,18 @@ function handleDataUpdate() {
 }
 
 // =========================================================================
-// 3. CORE ANALYTICS ENGINE & CHART INSTANTIATOR
+// 3. CORE ANALYTICS ENGINE & CHART INSTANTIATOR (UPDATED FOR DYNAMIC PROFITS)
 // =========================================================================
 function calculateAndPopulateDashboard() {
     // Base macro summary calculations
     const totalBlocks = productionsList.length > 0 ? productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
-    const totalBlocksSold = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
     
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
     
-    // Core accounting split calculations
+    // Core accounting split calculations: Net Cash remains tied to actual desk flow
     const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
-
-    // Calculate Sales Profit per single block (Total Sales Revenue / Total Physical Blocks Sold)
-    const salesProfitPerBlock = totalBlocksSold > 0 ? (totalSales / totalBlocksSold) : 0;
 
     // Time-Filtered Date Math setups (7 days and 30 days boundaries)
     const today = new Date();
@@ -101,38 +97,48 @@ function calculateAndPopulateDashboard() {
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(today.getDate() - 30);
 
-    let weeklySales = 0;
-    let monthlySales = 0;
-    let weeklyExpenses = 0;
-    let monthlyExpenses = 0;
+    // Fixed profit structural margins mapping object
+    const profitMargins = {
+        "Solid 5 inches": 2.00,
+        "Hollow 5 inches": 2.40,
+        "Solid 6 inches": 1.50
+    };
 
-    // Aggregate filtered timeframe totals
+    let totalSalesProfit = 0;
+    let weeklyProfit = 0;
+    let monthlyProfit = 0;
+
+    // Calculate profit dynamically straight out of sales invoices
     salesList.forEach(s => {
-        if (!s.date) return;
-        const logDate = new Date(s.date);
-        if (logDate >= oneWeekAgo && logDate <= today) weeklySales += Number(s.amount || 0);
-        if (logDate >= oneMonthAgo && logDate <= today) monthlySales += Number(s.amount || 0);
-    });
+        if (!s.type || !s.quantity) return;
+        
+        const profitPerBlock = profitMargins[s.type] || 0;
+        const profitOnThisSale = Number(s.quantity) * profitPerBlock;
+        
+        // Accumulate running historical profits matrix
+        totalSalesProfit += profitOnThisSale;
 
-    expensesList.forEach(e => {
-        if (!e.date) return;
-        const logDate = new Date(e.date);
-        if (logDate >= oneWeekAgo && logDate <= today) weeklyExpenses += Number(e.amount || 0);
-        if (logDate >= oneMonthAgo && logDate <= today) monthlyExpenses += Number(e.amount || 0);
+        // Sort into corresponding moving timeframe calculations
+        if (s.date) {
+            const logDate = new Date(s.date);
+            if (logDate >= oneWeekAgo && logDate <= today) {
+                weeklyProfit += profitOnThisSale;
+            }
+            if (logDate >= oneMonthAgo && logDate <= today) {
+                monthlyProfit += profitOnThisSale;
+            }
+        }
     });
-
-    const weeklyProfit = weeklySales - weeklyExpenses;
-    const monthlyProfit = monthlySales - monthlyExpenses;
 
     // Display summary data cleanly 
     if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks.toLocaleString()} Blocks`;
     if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
     
-    // Write Sales Profit per Block Metric
+    // Write Sales Profit Metric (Sum of unit margins accumulated)
     if (document.getElementById("salesProfitTotal")) {
-        document.getElementById("salesProfitTotal").innerText = `GH₵ ${salesProfitPerBlock.toFixed(2)} / blk`;
-        document.getElementById("salesProfitTotal").style.color = salesProfitPerBlock <= 0 ? "#dc2626" : "#16a34a";
+        document.getElementById("salesProfitTotal").innerText = `GH₵ ${totalSalesProfit.toFixed(2)}`;
+        document.getElementById("salesProfitTotal").style.color = totalSalesProfit <= 0 ? "#dc2626" : "#16a34a";
     }
 
     // Write Rolling Time-frame Window Profits
@@ -145,7 +151,7 @@ function calculateAndPopulateDashboard() {
         document.getElementById("monthlyProfitTotal").style.color = monthlyProfit < 0 ? "#dc2626" : "#16a34a";
     }
 
-    // Write Net Cash Balance (Total available workspace fund drawer unchanged)
+    // Write Net Cash Balance (Total available physical money drawer)
     if (document.getElementById("profitTotal")) {
         document.getElementById("profitTotal").innerText = `GH₵ ${netCashBalanceLeft.toFixed(2)}`;
         document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#2563eb";
@@ -163,7 +169,6 @@ function calculateAndPopulateDashboard() {
             const producedForType = productionsList.filter(p => p.type === blockType).reduce((sum, item) => sum + Number(item.amount || 0), 0);
             const soldForType = salesList.filter(s => s.type === blockType).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
             
-            // Unifies legacy production inline damage variables along with separate standalone casualties log sheets
             const legacyCasualties = productionsList.filter(p => p.type === blockType).reduce((sum, item) => sum + Number(item.casualties || 0), 0);
             const explicitCasualties = casualtiesList.filter(c => c.type === blockType).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
             const totalCasualties = legacyCasualties + explicitCasualties;
@@ -217,7 +222,7 @@ function calculateAndPopulateDashboard() {
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         
-        last7DaysStrings.push(`${yyyy}-${mm}-${dd}`); // Pure text keys match database standard
+        last7DaysStrings.push(`${yyyy}-${mm}-${dd}`);
         last7DaysLabels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     }
 
@@ -300,7 +305,7 @@ function calculateAndPopulateDashboard() {
 }
 
 // =========================================================================
-// 4. SUB-PAGE SPREADSHEET BUILDERS
+// 4. SUB-PAGE SPREADSHEET BUILDERS (FIXED CASUALTIES LOOPER)
 // =========================================================================
 function populateCasualtiesSpreadsheetTable() {
     const tbody = document.getElementById("casualtiesTableBody");
@@ -312,7 +317,8 @@ function populateCasualtiesSpreadsheetTable() {
         return;
     }
 
-    utilitiesList.forEach(item => {
+    // FIXED: Changed from 'utilitiesList' to 'casualtiesList'
+    casualtiesList.forEach(item => {
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px; color: #1e293b;">${item.date}</td>
@@ -572,7 +578,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 await addDoc(collection(db, "sales"), {
                     date: document.getElementById("saleDate").value,
                     customer: document.getElementById("customerName").value,
-                    type: document.getElementById("blockType").value,
+                    type: document.getElementById("blockType").value, // Make sure your HTML select element matches the exact block names!
                     quantity: qty,
                     unitPrice: price,
                     amount: qty * price

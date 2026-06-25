@@ -22,17 +22,17 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Global lists to store cloud data locally for filtering
+// Global data caches for real-time memory rendering
 let productionsList = [];
 let salesList = [];
 let expensesList = [];
-let casualtiesList = []; // Added for tracking independent casualty logs
-let reportData = []; // Combined formatted records for the reports page
+let casualtiesList = []; 
+let reportData = []; 
 
 let currentPage = 1;
 
 // =========================================================================
-// 2. LIVE REAL-TIME SYNC (DASHBOARD, EXPENSES, CASUALTIES & REPORTS)
+// 2. LIVE REAL-TIME SYNC ENGINE (AUTO-ROUTING DATABASE UPDATE WATCHERS)
 // =========================================================================
 onSnapshot(query(collection(db, "productions"), orderBy("date", "desc")), (snapshot) => {
     productionsList = snapshot.docs.map(doc => doc.data());
@@ -54,41 +54,40 @@ onSnapshot(query(collection(db, "casualties"), orderBy("date", "desc")), (snapsh
     handleDataUpdate();
 });
 
-// Runs whenever database updates to refresh whichever page is open
 function handleDataUpdate() {
-    // If user is on Dashboard page
-    if (document.getElementById("productionTotal") || document.querySelector("#recentActivitiesTable tbody") || document.getElementById("stockTableBody")) {
+    // Dashboard validation layout elements
+    if (document.getElementById("productionTotal") || document.getElementById("stockTableBody") || document.getElementById("salesChart")) {
         calculateAndPopulateDashboard();
     }
-    // If user is on Production entry page (populates the new casualties spreadsheet table)
+    // Casualties dedicated log list table view
     if (document.getElementById("casualtiesTableBody")) {
         populateCasualtiesSpreadsheetTable();
     }
-    // If user is on Expenses entry page
+    // Expense management spreadsheet view
     if (document.getElementById("expensesTableBody")) {
         populateExpensesSpreadsheetTable();
     }
-    // If user is on Reports page
+    // Dynamic structural report sheets
     if (document.getElementById("reportsTable")) {
         buildCombinedReportData();
         applyReportFilters();
     }
 }
 
+// =========================================================================
+// 3. CORE ANALYTICS ENGINE & CHART INSTANTIATOR
+// =========================================================================
 function calculateAndPopulateDashboard() {
-    // 1. Calculate base aggregate production, sales, and operational expenses
+    // Base macro summary calculations
     const totalBlocks = productionsList.length > 0 ? productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     
-    // 2. OPENING CAPITAL BRIDGE: Fetch starting cash position from local memory
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
-    
-    // Core Running Runway Math Model: Capital + Sales Revenue - Active Spending
     const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
 
-    // 3. Populate metrics elements smoothly onto the Dashboard UI
-    if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks} Blocks`;
+    // Display summary data cleanly 
+    if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks.toLocaleString()} Blocks`;
     if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
     
@@ -97,41 +96,24 @@ function calculateAndPopulateDashboard() {
         document.getElementById("profitTotal").style.color = netCashBalanceLeft < 0 ? "#dc2626" : "#16a34a";
     }
 
-    // =========================================================================
-    // FIXED METRIC STOCK INVENTORY CALCULATION ENGINE (WITH CASUALTIES)
-    // =========================================================================
+    // -------------------------------------------------------------------------
+    // LIVE YARD STOCK LEVELS GRID CALCULATION
+    // -------------------------------------------------------------------------
     const stockTableBody = document.getElementById("stockTableBody");
     if (stockTableBody) {
-        stockTableBody.innerHTML = ""; // Clear old loops
-        
-        const standardYardProducts = [
-            "Hollow 5 inches",
-            "Solid 5 inches",
-            "Solid 6 inches"
-        ];
+        stockTableBody.innerHTML = "";
+        const standardYardProducts = ["Hollow 5 inches", "Solid 5 inches", "Solid 6 inches"];
 
         standardYardProducts.forEach(blockType => {
-            const producedForType = productionsList.length > 0 ? productionsList
-                .filter(p => p.type === blockType)
-                .reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+            const producedForType = productionsList.filter(p => p.type === blockType).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const soldForType = salesList.filter(s => s.type === blockType).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            
+            // Unifies legacy production inline damage variables along with separate standalone casualties log sheets
+            const legacyCasualties = productionsList.filter(p => p.type === blockType).reduce((sum, item) => sum + Number(item.casualties || 0), 0);
+            const explicitCasualties = casualtiesList.filter(c => c.type === blockType).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+            const totalCasualties = legacyCasualties + explicitCasualties;
 
-            const soldForType = salesList.length > 0 ? salesList
-                .filter(s => s.type === blockType)
-                .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
-
-            // Merges inline structural legacy variables along with the explicit separate logs
-            const legacyCasualties = productionsList.length > 0 ? productionsList
-                .filter(p => p.type === blockType)
-                .reduce((sum, item) => sum + Number(item.casualties || 0), 0) : 0;
-
-            const loggedCasualties = casualtiesList.length > 0 ? casualtiesList
-                .filter(c => c.type === blockType)
-                .reduce((sum, item) => sum + Number(item.quantity || 0), 0) : 0;
-
-            const totalCasualtiesForType = legacyCasualties + loggedCasualties;
-
-            // Balanced Formula: Stock = Produced - Sold - Casualties
-            const currentStock = producedForType - soldForType - totalCasualtiesForType;
+            const currentStock = producedForType - soldForType - totalCasualties;
             const stockColor = currentStock < 0 ? "#dc2626" : (currentStock < 100 ? "#d97706" : "#16a34a");
 
             stockTableBody.innerHTML += `
@@ -139,26 +121,21 @@ function calculateAndPopulateDashboard() {
                     <td style="padding: 12px;"><b>${blockType}</b></td>
                     <td style="padding: 12px; color: #2563eb; font-weight: 500;">+ ${producedForType.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${soldForType.toLocaleString()} pcs</td>
-                    <td style="padding: 12px; color: #d97706; font-weight: 500;">- ${totalCasualtiesForType.toLocaleString()} pcs</td>
+                    <td style="padding: 12px; color: #d97706; font-weight: 500;">- ${totalCasualties.toLocaleString()} pcs</td>
                     <td style="padding: 12px; color: ${stockColor}; font-weight: bold;">${currentStock.toLocaleString()} left</td>
-                </tr>
-            `;
+                </tr>`;
         });
     }
 
-    // =========================================================================
-    // LIVE CEMENT STOCK CALCULATION ENGINE
-    // =========================================================================
+    // -------------------------------------------------------------------------
+    // CEMENT INVENTORY BINDINGS
+    // -------------------------------------------------------------------------
     const cementTableBody = document.getElementById("cementTableBody");
     if (cementTableBody) {
-        cementTableBody.innerHTML = "";
-
-        const totalBagsUsed = productionsList.length > 0 ? productionsList
-            .reduce((sum, item) => sum + Number(item.cementBags || 0), 0) : 0;
-
-        const totalBagsPurchased = expensesList.length > 0 ? expensesList
+        const totalBagsUsed = productionsList.reduce((sum, item) => sum + Number(item.cementBags || 0), 0);
+        const totalBagsPurchased = expensesList
             .filter(e => e.type === "Cement" || (e.description && e.description.toLowerCase().includes("cement")))
-            .reduce((sum, item) => sum + Number(item.bagsPurchased || item.quantity || 0), 0) : 0;
+            .reduce((sum, item) => sum + Number(item.bagsPurchased || item.quantity || 0), 0);
 
         const cementLeft = totalBagsPurchased - totalBagsUsed;
         const cementColor = cementLeft < 10 ? "#dc2626" : (cementLeft < 40 ? "#d97706" : "#16a34a");
@@ -169,24 +146,91 @@ function calculateAndPopulateDashboard() {
                 <td style="padding: 12px; color: #16a34a; font-weight: 500;">+ ${totalBagsPurchased.toLocaleString()} bags</td>
                 <td style="padding: 12px; color: #dc2626; font-weight: 500;">- ${totalBagsUsed.toLocaleString()} bags</td>
                 <td style="padding: 12px; color: ${cementColor}; font-weight: bold;">${cementLeft.toLocaleString()} bags left</td>
-            </tr>
-        `;
+            </tr>`;
     }
 
-    // Recent Activities population
+    // -------------------------------------------------------------------------
+    // ROLLING 7-DAY TIME-SERIES CHART DATA MATRIX GENERATION
+    // -------------------------------------------------------------------------
+    const last7DaysStrings = [];
+    const last7DaysLabels = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        
+        last7DaysStrings.push(`${yyyy}-${mm}-${dd}`); // Pure text keys match database standard
+        last7DaysLabels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+
+    const dailySalesData = last7DaysStrings.map(dateStr => {
+        return salesList.filter(s => s.date === dateStr).reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    });
+
+    const dailyExpensesData = last7DaysStrings.map(dateStr => {
+        return expensesList.filter(e => e.date === dateStr).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    });
+
+    // Sales Chart Binding
+    const salesCtx = document.getElementById('salesChart');
+    if (salesCtx) {
+        if (window.mySalesChartInstance) window.mySalesChartInstance.destroy();
+        window.mySalesChartInstance = new Chart(salesCtx, {
+            type: 'bar',
+            data: {
+                labels: last7DaysLabels,
+                datasets: [{
+                    label: 'Sales Revenue (GH₵)',
+                    data: dailySalesData,
+                    backgroundColor: '#16a34a',
+                    borderColor: '#15803d',
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // Expenses Chart Binding
+    const expensesCtx = document.getElementById('expensesChart');
+    if (expensesCtx) {
+        if (window.myExpensesChartInstance) window.myExpensesChartInstance.destroy();
+        window.myExpensesChartInstance = new Chart(expensesCtx, {
+            type: 'line',
+            data: {
+                labels: last7DaysLabels,
+                datasets: [{
+                    label: 'Operational Spend (GH₵)',
+                    data: dailyExpensesData,
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                    borderColor: '#dc2626',
+                    borderWidth: 2,
+                    tension: 0.15,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // COMBINED RECENT REAL-TIME ACTIVITY LOGGER
+    // -------------------------------------------------------------------------
     const tableBody = document.querySelector("#recentActivitiesTable tbody");
     if (tableBody) {
         tableBody.innerHTML = "";
-        
         const combinedActivities = [
             ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
             ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
             ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` })),
-            ...casualtiesList.map(c => ({ date: c.date, activity: `💥 Damage logged: ${c.quantity} x ${c.type} (${c.reason})`, amount: "-" }))
+            ...casualtiesList.map(c => ({ date: c.date, activity: `💥 Damage: ${c.quantity} x ${c.type} (${c.reason})`, amount: "-" }))
         ];
 
         if (combinedActivities.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:15px; color:#888;">No historical activities logged yet. Database clean.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:15px; color:#888;">No historical data entries logged.</td></tr>`;
         } else {
             combinedActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
             combinedActivities.slice(0, 15).forEach(act => {
@@ -201,16 +245,15 @@ function calculateAndPopulateDashboard() {
 }
 
 // =========================================================================
-// REAL-TIME CASUALTIES SPREADSHEET TABLE POPULATION
+// 4. SUB-PAGE SPREADSHEET BUILDERS
 // =========================================================================
 function populateCasualtiesSpreadsheetTable() {
     const tbody = document.getElementById("casualtiesTableBody");
     if (!tbody) return;
-
     tbody.innerHTML = "";
 
     if (casualtiesList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#6b7280;">No breakage/casualties recorded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#6b7280;">No breakage logs recorded yet.</td></tr>`;
         return;
     }
 
@@ -218,37 +261,29 @@ function populateCasualtiesSpreadsheetTable() {
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 12px; color: #1e293b;">${item.date}</td>
-                <td style="padding: 12px; font-weight: 600; color: #1e293b;">${item.type}</td>
+                <td style="padding: 12px; font-weight: 600;">${item.type}</td>
                 <td style="padding: 12px; color: #475569;"><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${item.reason}</span></td>
                 <td style="padding: 12px; font-weight: bold; color: #b45309;">- ${Number(item.quantity).toLocaleString()} pcs</td>
-            </tr>
-        `;
+            </tr>`;
     });
 }
 
-// =========================================================================
-// REAL-TIME EXPENSES SPREADSHEET BUILDER WITH NET BALANCE FLOW ENGINE
-// =========================================================================
 function populateExpensesSpreadsheetTable() {
     const tableBody = document.getElementById("expensesTableBody");
     const totalFooterDisplay = document.getElementById("tableExpensesTotal");
     const netBalanceDisplay = document.getElementById("tableNetBalanceTotal");
-    
     if (!tableBody) return;
     
     tableBody.innerHTML = "";
     let totalAccumulatedSpent = 0;
 
-    const totalSalesRevenue = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const totalSalesRevenue = salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
 
     if (expensesList.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No operational expenses recorded yet. Database clear.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No structural operational expenses found.</td></tr>`;
         if (totalFooterDisplay) totalFooterDisplay.innerText = "GH₵ 0.00";
-        if (netBalanceDisplay) {
-            netBalanceDisplay.innerText = `GH₵ ${(startingCapital + totalSalesRevenue).toFixed(2)}`;
-            netBalanceDisplay.style.color = "#16a34a";
-        }
+        if (netBalanceDisplay) netBalanceDisplay.innerText = `GH₵ ${(startingCapital + totalSalesRevenue).toFixed(2)}`;
         return;
     }
 
@@ -257,67 +292,49 @@ function populateExpensesSpreadsheetTable() {
         totalAccumulatedSpent += numericAmount;
 
         tableBody.innerHTML += `
-            <tr style="border-bottom: 1px solid #e2e8f0; hover: background-color: #f8fafc;">
-                <td style="padding: 12px; color: #1e293b;">${expense.date}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px;">${expense.date}</td>
                 <td style="padding: 12px; color: #1e40af; font-weight: 600;">${expense.type}</td>
                 <td style="padding: 12px; color: #475569;">${expense.description}</td>
-                <td style="padding: 12px; color: #64748b;"><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${expense.paymentMethod || 'Cash'}</span></td>
+                <td style="padding: 12px;"><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${expense.paymentMethod || 'Cash'}</span></td>
                 <td style="padding: 12px; font-weight: bold; color: #dc2626;">GH₵ ${numericAmount.toFixed(2)}</td>
-            </tr>
-        `;
+            </tr>`;
     });
 
     const netBalanceLeft = startingCapital + totalSalesRevenue - totalAccumulatedSpent;
-    const balanceColor = netBalanceLeft < 0 ? "#dc2626" : "#16a34a";
-
-    if (totalFooterDisplay) {
-        totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
-    }
+    if (totalFooterDisplay) totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
     if (netBalanceDisplay) {
         netBalanceDisplay.innerText = `GH₵ ${netBalanceLeft.toFixed(2)}`;
-        netBalanceDisplay.style.color = balanceColor;
+        netBalanceDisplay.style.color = netBalanceLeft < 0 ? "#dc2626" : "#16a34a";
     }
 }
 
 // =========================================================================
-// 3. REPORTS GENERATION & FILTERING ENGINE
+// 5. GLOBAL AUDIT REPORT FILTERS GENERATOR
 // =========================================================================
 function buildCombinedReportData() {
     reportData = [
         ...productionsList.map(p => ({
-            date: p.date,
-            rawType: "production",
-            typeDisplay: "🏭 Production",
+            date: p.date, rawType: "production", typeDisplay: "🏭 Production",
             details: `${p.amount} blocks (${p.type || 'Standard'}). Bags used: ${p.cementBags || 0}. ${p.remarks || ''}`,
-            amountDisplay: "-",
-            numericAmount: 0
+            amountDisplay: "-", numericAmount: 0
         })),
         ...salesList.map(s => ({
-            date: s.date,
-            rawType: "sales",
-            typeDisplay: "💰 Sale",
+            date: s.date, rawType: "sales", typeDisplay: "💰 Sale",
             details: `Customer: ${s.customer} | ${s.quantity} x ${s.type} @ GH₵ ${s.unitPrice}`,
-            amountDisplay: `GH₵ ${Number(s.amount).toFixed(2)}`,
-            numericAmount: Number(s.amount || 0)
+            amountDisplay: `GH₵ ${Number(s.amount).toFixed(2)}`, numericAmount: Number(s.amount || 0)
         })),
         ...expensesList.map(e => ({
-            date: e.date,
-            rawType: "expenses",
-            typeDisplay: "📉 Expense",
+            date: e.date, rawType: "expenses", typeDisplay: "📉 Expense",
             details: `[${e.type}] ${e.description} (${e.paymentMethod || 'Cash'})`,
-            amountDisplay: `GH₵ ${Number(e.amount).toFixed(2)}`,
-            numericAmount: Number(e.amount || 0)
+            amountDisplay: `GH₵ ${Number(e.amount).toFixed(2)}`, numericAmount: Number(e.amount || 0)
         })),
         ...casualtiesList.map(c => ({
-            date: c.date,
-            rawType: "casualties",
-            typeDisplay: "💥 Casualty Log",
-            details: `Damaged/Broken: ${c.quantity} x ${c.type} | Reason: ${c.reason}`,
-            amountDisplay: "-",
-            numericAmount: 0
+            date: c.date, rawType: "casualties", typeDisplay: "💥 Casualty Log",
+            details: `Damaged/Broken Stock: ${c.quantity} x ${c.type} | Reason: ${c.reason}`,
+            amountDisplay: "-", numericAmount: 0
         }))
     ];
-    
     reportData.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
@@ -335,24 +352,20 @@ function applyReportFilters() {
 
     if (dateFrom) filtered = filtered.filter(item => item.date >= dateFrom);
     if (dateTo) filtered = filtered.filter(item => item.date <= dateTo);
-
-    if (searchQuery) {
-        filtered = filtered.filter(item => item.details.toLowerCase().includes(searchQuery));
-    }
+    if (searchQuery) filtered = filtered.filter(item => item.details.toLowerCase().includes(searchQuery));
 
     const totalItems = filtered.length;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
     if (currentPage > totalPages) currentPage = totalPages;
 
     const startIdx = (currentPage - 1) * pageSize;
-    const endIdx = startIdx + pageSize;
-    const pageData = filtered.slice(startIdx, endIdx);
+    const pageData = filtered.slice(startIdx, startIdx + pageSize);
 
     const tbody = document.getElementById("reportsBody");
     if (tbody) {
         tbody.innerHTML = "";
         if (pageData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#6b7280;">No data found matching current criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#6b7280;">No data fits selected criteria.</td></tr>`;
         } else {
             pageData.forEach(item => {
                 tbody.innerHTML += `<tr>
@@ -365,16 +378,16 @@ function applyReportFilters() {
         }
     }
 
-    const pageInfo = document.getElementById("pageInfo");
-    if (pageInfo) {
-        pageInfo.innerText = `Page ${currentPage} of ${totalPages} (${totalItems} total entries)`;
+    if (document.getElementById("pageInfo")) {
+        document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${totalPages} (${totalItems} entries total)`;
     }
 }
 
 // =========================================================================
-// 4. FORMS SUBMISSIONS & EVENT LISTENERS
+// 6. LIFE CYCLE FORM EVENTS & WINDOW LISTENERS
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
+    // Synchronize opening capital configuration options
     const capitalInput = document.getElementById('startingCapital');
     const saveCapitalBtn = document.getElementById('saveCapitalBtn');
     
@@ -384,152 +397,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (saveCapitalBtn) {
         saveCapitalBtn.addEventListener('click', () => {
-            const amount = parseFloat(capitalInput.value) || 0;
-            localStorage.setItem('startingCapital', amount);
-            alert('🚀 Opening Capital Balance loaded successfully! Refreshing running balance matrix...');
+            localStorage.setItem('startingCapital', parseFloat(capitalInput.value) || 0);
+            alert('🚀 Opening Capital Balance updated securely!');
             handleDataUpdate();
         });
     }
 
+    // Mathematical dynamic calculations for the Sales form interface multiplier
     const qtyInput = document.getElementById("quantity");
     const priceInput = document.getElementById("price");
     const totalInput = document.getElementById("total");
 
     if (qtyInput && priceInput && totalInput) {
         const updateTotal = () => {
-            const qty = Number(qtyInput.value) || 0;
-            const price = Number(priceInput.value) || 0;
-            totalInput.value = (qty * price).toFixed(2);
+            totalInput.value = ((Number(qtyInput.value) || 0) * (Number(priceInput.value) || 0)).toFixed(2);
         };
         qtyInput.addEventListener("input", updateTotal);
         priceInput.addEventListener("input", updateTotal);
     }
 
-    const applyBtn = document.getElementById("applyFilters");
-    if (applyBtn) {
-        applyBtn.addEventListener("click", () => {
-            currentPage = 1;
-            applyReportFilters();
-        });
+    // Pagination Listeners
+    if (document.getElementById("applyFilters")) {
+        document.getElementById("applyFilters").addEventListener("click", () => { currentPage = 1; applyReportFilters(); });
     }
-
-    const prevBtn = document.getElementById("prevPage");
-    if (prevBtn) {
-        prevBtn.addEventListener("click", () => {
-            if (currentPage > 1) {
-                currentPage--;
-                applyReportFilters();
-            }
-        });
+    if (document.getElementById("prevPage")) {
+        document.getElementById("prevPage").addEventListener("click", () => { if (currentPage > 1) { currentPage--; applyReportFilters(); } });
     }
-
-    const nextBtn = document.getElementById("nextPage");
-    if (nextBtn) {
-        nextBtn.addEventListener("click", () => {
+    if (document.getElementById("nextPage")) {
+        document.getElementById("nextPage").addEventListener("click", () => {
             const pageSize = Number(document.getElementById("pageSize").value) || 50;
-            const totalPages = Math.ceil(reportData.length / pageSize) || 1;
-            if (currentPage < totalPages) {
-                currentPage++;
-                applyReportFilters();
-            }
+            if (currentPage < Math.ceil(reportData.length / pageSize)) { currentPage++; applyReportFilters(); }
         });
     }
 
+    // Drawer settings panel logic toggle UI
     const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
     const settingsPanel = document.getElementById("settingsPanel");
-    const dropdownArrow = document.getElementById("dropdownArrow");
-
     if (toggleSettingsBtn && settingsPanel) {
         toggleSettingsBtn.addEventListener("click", () => {
-            if (settingsPanel.style.display === "none") {
-                settingsPanel.style.display = "block";
-                if (dropdownArrow) dropdownArrow.innerText = "▲";
-                toggleSettingsBtn.style.color = "#ffffff";
-            } else {
-                settingsPanel.style.display = "none";
-                if (dropdownArrow) dropdownArrow.innerText = "▼";
-                toggleSettingsBtn.style.color = "#9ca3af";
-            }
+            const isHidden = settingsPanel.style.display === "none";
+            settingsPanel.style.display = isHidden ? "block" : "none";
+            document.getElementById("dropdownArrow").innerText = isHidden ? "▲" : "▼";
+            toggleSettingsBtn.style.color = isHidden ? "#ffffff" : "#9ca3af";
         });
     }
 
-    const logoutBtn = document.getElementById("sidebarLogoutBtn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            signOut(auth).then(() => {
-                window.location.href = "index.html";
-            }).catch((err) => {
-                alert("Error logging out: " + err.message);
-            });
-        });
-    }
-
-    // DANGER ZONE: PURGE SYSTEM
+    // Danger Zone database wiper tool
     const resetDbBtn = document.getElementById("resetDbBtn");
     if (resetDbBtn) {
         resetDbBtn.addEventListener("click", async () => {
-            const firstWarning = confirm("⚠️ WARNING: You are about to completely wipe the factory database. This will delete all Production logs, Sales sheets, Casualties, and Expense reports. Proceed?");
-            if (!firstWarning) return;
-
-            const finalConfirmation = prompt("To confirm absolute destruction of all records, type 'DELETE' below:");
-            if (finalConfirmation !== "DELETE") {
-                alert("Wipe canceled. Security phrase incorrect.");
-                return;
-            }
+            if (!confirm("⚠️ Proceeding will completely wipe all production logs, sales records, casualties and expenses. Continue?")) return;
+            if (prompt("Type 'DELETE' to confirm storage purge:") !== "DELETE") { alert("Action aborted."); return; }
 
             resetDbBtn.disabled = true;
-            resetDbBtn.innerText = "⏳ Purging Cloud...";
+            resetDbBtn.innerText = "⏳ Purging Data Sheets...";
 
             try {
-                const collectionsToClear = ["productions", "sales", "expenses", "casualties"];
-                
-                for (const colName of collectionsToClear) {
-                    const querySnapshot = await getDocs(collection(db, colName));
-                    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-                    await Promise.all(deletePromises);
+                const targets = ["productions", "sales", "expenses", "casualties"];
+                for (const col of targets) {
+                    const snap = await getDocs(collection(db, col));
+                    await Promise.all(snap.docs.map(doc => deleteDoc(doc.ref)));
                 }
-
-                localStorage.removeItem('startingCapital'); 
-                alert("🗑️ Database successfully purged! The system has reset back to clean slate settings.");
+                localStorage.removeItem('startingCapital');
+                alert("🗑️ Live system data completely cleared.");
                 window.location.reload();
-            } catch (err) {
-                alert("Error during system purge: " + err.message);
-                resetDbBtn.disabled = false;
-                resetDbBtn.innerText = "🗑️ Clear Live Data";
-            }
+            } catch (err) { alert("Error: " + err.message); resetDbBtn.disabled = false; }
         });
     }
 
-    // PRODUCTION SUBMIT
+    // Production log form submission
     const prodForm = document.getElementById("productionForm");
     if (prodForm) {
         prodForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = prodForm.querySelector("button");
-            btn.disabled = true;
+            const btn = prodForm.querySelector("button"); btn.disabled = true;
             try {
                 await addDoc(collection(db, "productions"), {
                     date: document.getElementById("productionDate").value,
                     type: document.getElementById("blockType").value,
                     amount: Number(document.getElementById("quantityProduced").value),
                     cementBags: Number(document.getElementById("cementBagsUsed").value),
+                    casualties: document.getElementById("quantityCasualties") ? Number(document.getElementById("quantityCasualties").value) : 0,
                     remarks: document.getElementById("remarks").value
                 });
-                alert("🏭 Production batch saved to cloud!");
-                prodForm.reset();
-            } catch (err) { alert("Error saving data: " + err.message); }
+                alert("🏭 Production log entry submitted!"); prodForm.reset();
+            } catch (err) { alert("Save Error: " + err.message); }
             btn.disabled = false;
         });
     }
 
-    // NEW CASUALTIES FORM SUBMIT
+    // Standalone Casualty Log submission handler
     const casualtiesForm = document.getElementById("casualtiesForm");
     if (casualtiesForm) {
         casualtiesForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = casualtiesForm.querySelector("button");
-            btn.disabled = true;
+            const btn = casualtiesForm.querySelector("button"); btn.disabled = true;
             try {
                 await addDoc(collection(db, "casualties"), {
                     date: document.getElementById("casualtyDate").value,
@@ -537,20 +499,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     quantity: Number(document.getElementById("quantityBroken").value),
                     reason: document.getElementById("damageReason").value
                 });
-                alert("💥 Casualties & Breakage logged successfully!");
-                casualtiesForm.reset();
-            } catch (err) { alert("Error saving casualty log: " + err.message); }
+                alert("💥 Breakage logged successfully!"); casualtiesForm.reset();
+            } catch (err) { alert("Casualty Logging Error: " + err.message); }
             btn.disabled = false;
         });
     }
 
-    // SALES SUBMIT
+    // Invoice sales form submission
     const salesForm = document.getElementById("salesForm");
     if (salesForm) {
         salesForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = salesForm.querySelector("button");
-            btn.disabled = true;
+            const btn = salesForm.querySelector("button"); btn.disabled = true;
             try {
                 const qty = Number(document.getElementById("quantity").value);
                 const price = Number(document.getElementById("price").value);
@@ -562,35 +522,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     unitPrice: price,
                     amount: qty * price
                 });
-                alert("💰 Sale receipt logged successfully!");
-                salesForm.reset();
-            } catch (err) { alert("Error saving data: " + err.message); }
+                alert("💰 Sale invoice added successfully!"); salesForm.reset();
+            } catch (err) { alert("Save Error: " + err.message); }
             btn.disabled = false;
         });
     }
 
-    // EXPENSES SUBMIT
+    // Business operational spending balance sheet form submission
     const expForm = document.getElementById("expensesForm");
     if (expForm) {
         expForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = expForm.querySelector("button");
-            btn.disabled = true;
+            const btn = expForm.querySelector("button"); btn.disabled = true;
             try {
                 const bagsInput = document.getElementById("bagsPurchased") || document.getElementById("expenseQuantity");
-                const bagsValue = bagsInput ? Number(bagsInput.value) : 0;
-
                 await addDoc(collection(db, "expenses"), {
                     date: document.getElementById("expenseDate").value,
                     type: document.getElementById("expenseType").value,
                     description: document.getElementById("description").value,
                     amount: Number(document.getElementById("amount").value),
                     paymentMethod: document.getElementById("paymentType").value,
-                    bagsPurchased: bagsValue
+                    bagsPurchased: bagsInput ? Number(bagsInput.value) : 0
                 });
-                alert("📉 Expense recorded successfully!");
-                expForm.reset();
-            } catch (err) { alert("Error saving data: " + err.message); }
+                alert("📉 Operational expense sheet modified!"); expForm.reset();
+            } catch (err) { alert("Save Error: " + err.message); }
             btn.disabled = false;
         });
     }

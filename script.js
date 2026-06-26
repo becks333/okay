@@ -75,18 +75,22 @@ function handleDataUpdate() {
 }
 
 // =========================================================================
-// 3. CORE ANALYTICS ENGINE & CHART INSTANTIATOR (UPDATED FOR DYNAMIC PROFITS)
+// 3. CORE ANALYTICS ENGINE & CHART INSTANTIATOR (UPDATED FOR DEBT TRACKING)
 // =========================================================================
 function calculateAndPopulateDashboard() {
     // Base macro summary calculations
     const totalBlocks = productionsList.length > 0 ? productionsList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
-    const totalSales = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
     const totalExpenses = expensesList.length > 0 ? expensesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    
+    // Core adjustments: Split total volume of sales vs sales revenue actually received
+    const totalSalesVolumeValue = salesList.length > 0 ? salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const totalSalesRevenueReceived = salesList.filter(s => s.status !== "Unpaid").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalUnpaidCredit = salesList.filter(s => s.status === "Unpaid").reduce((sum, item) => sum + Number(item.amount || 0), 0);
     
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
     
-    // Core accounting split calculations: Net Cash remains tied to actual desk flow
-    const netCashBalanceLeft = startingCapital + totalSales - totalExpenses;
+    // Core accounting split calculations: Net Cash remains tied strictly to collected physical money flow
+    const netCashBalanceLeft = startingCapital + totalSalesRevenueReceived - totalExpenses;
 
     // Time-Filtered Date Math setups (7 days and 30 days boundaries)
     const today = new Date();
@@ -108,7 +112,7 @@ function calculateAndPopulateDashboard() {
     let weeklyProfit = 0;
     let monthlyProfit = 0;
 
-    // Calculate profit dynamically straight out of sales invoices
+    // Calculate profit dynamically straight out of sales invoices (Generated earnings even if on terms)
     salesList.forEach(s => {
         if (!s.type || !s.quantity) return;
         
@@ -132,8 +136,17 @@ function calculateAndPopulateDashboard() {
 
     // Display summary data cleanly 
     if (document.getElementById("productionTotal")) document.getElementById("productionTotal").innerText = `${totalBlocks.toLocaleString()} Blocks`;
-    if (document.getElementById("salesTotal")) document.getElementById("salesTotal").innerText = `GH₵ ${totalSales.toFixed(2)}`;
     if (document.getElementById("expensesTotal")) document.getElementById("expensesTotal").innerText = `GH₵ ${totalExpenses.toFixed(2)}`;
+    
+    // Shows Collected Liquid Revenue on standard panel card
+    if (document.getElementById("salesTotal")) {
+        document.getElementById("salesTotal").innerText = `GH₵ ${totalSalesRevenueReceived.toFixed(2)}`;
+    }
+    
+    // Optional placeholder anchor: if you add a text UI node for receivables tracking
+    if (document.getElementById("unpaidCreditTotal")) {
+        document.getElementById("unpaidCreditTotal").innerText = `GH₵ ${totalUnpaidCredit.toFixed(2)}`;
+    }
     
     // Write Sales Profit Metric (Sum of unit margins accumulated)
     if (document.getElementById("salesProfitTotal")) {
@@ -158,7 +171,7 @@ function calculateAndPopulateDashboard() {
     }
 
     // -------------------------------------------------------------------------
-    // LIVE YARD STOCK LEVELS GRID CALCULATION
+    // LIVE YARD STOCK LEVELS GRID CALCULATION (UNCHANGED: DEDUCTS ALL BLOCKS REGARDLESS OF CASH)
     // -------------------------------------------------------------------------
     const stockTableBody = document.getElementById("stockTableBody");
     if (stockTableBody) {
@@ -210,7 +223,7 @@ function calculateAndPopulateDashboard() {
     }
 
     // -------------------------------------------------------------------------
-    // ROLLING 7-DAY TIME-SERIES CHART DATA MATRIX GENERATION
+    // ROLLING 7-DAY TIME-SERIES CHART DATA MATRIX GENERATION (Displays collected actual money)
     // -------------------------------------------------------------------------
     const last7DaysStrings = [];
     const last7DaysLabels = [];
@@ -227,7 +240,7 @@ function calculateAndPopulateDashboard() {
     }
 
     const dailySalesData = last7DaysStrings.map(dateStr => {
-        return salesList.filter(s => s.date === dateStr).reduce((sum, s) => sum + Number(s.amount || 0), 0);
+        return salesList.filter(s => s.date === dateStr && s.status !== "Unpaid").reduce((sum, s) => sum + Number(s.amount || 0), 0);
     });
 
     const dailyExpensesData = last7DaysStrings.map(dateStr => {
@@ -243,7 +256,7 @@ function calculateAndPopulateDashboard() {
             data: {
                 labels: last7DaysLabels,
                 datasets: [{
-                    label: 'Sales Revenue (GH₵)',
+                    label: 'Collected Cash Revenue (GH₵)',
                     data: dailySalesData,
                     backgroundColor: '#16a34a',
                     borderColor: '#15803d',
@@ -284,7 +297,11 @@ function calculateAndPopulateDashboard() {
         tableBody.innerHTML = "";
         const combinedActivities = [
             ...productionsList.map(p => ({ date: p.date, activity: `Produced ${p.amount} x ${p.type}`, amount: "-" })),
-            ...salesList.map(s => ({ date: s.date, activity: `Sale to ${s.customer} (${s.quantity} x ${s.type})`, amount: `GH₵ ${s.amount}` })),
+            ...salesList.map(s => ({ 
+                date: s.date, 
+                activity: `Sale to ${s.customer} (${s.quantity} x ${s.type}) ${s.status === 'Unpaid' ? '🔴 [UNPAID CREDIT]' : '🟢'}`, 
+                amount: `GH₵ ${s.amount}` 
+            })),
             ...expensesList.map(e => ({ date: e.date, activity: `Expense: [${e.type}] ${e.description}`, amount: `GH₵ ${e.amount}` })),
             ...casualtiesList.map(c => ({ date: c.date, activity: `💥 Damage: ${c.quantity} x ${c.type} (${c.reason})`, amount: "-" }))
         ];
@@ -305,7 +322,7 @@ function calculateAndPopulateDashboard() {
 }
 
 // =========================================================================
-// 4. SUB-PAGE SPREADSHEET BUILDERS (FIXED CASUALTIES LOOPER)
+// 4. SUB-PAGE SPREADSHEET BUILDERS
 // =========================================================================
 function populateCasualtiesSpreadsheetTable() {
     const tbody = document.getElementById("casualtiesTableBody");
@@ -317,7 +334,6 @@ function populateCasualtiesSpreadsheetTable() {
         return;
     }
 
-    // FIXED: Changed from 'utilitiesList' to 'casualtiesList'
     casualtiesList.forEach(item => {
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -338,13 +354,13 @@ function populateExpensesSpreadsheetTable() {
     tableBody.innerHTML = "";
     let totalAccumulatedSpent = 0;
 
-    const totalSalesRevenue = salesList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalSalesRevenueReceived = salesList.filter(s => s.status !== "Unpaid").reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const startingCapital = parseFloat(localStorage.getItem('startingCapital')) || 0;
 
     if (expensesList.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">No structural operational expenses found.</td></tr>`;
         if (totalFooterDisplay) totalFooterDisplay.innerText = "GH₵ 0.00";
-        if (netBalanceDisplay) netBalanceDisplay.innerText = `GH₵ ${(startingCapital + totalSalesRevenue).toFixed(2)}`;
+        if (netBalanceDisplay) netBalanceDisplay.innerText = `GH₵ ${(startingCapital + totalSalesRevenueReceived).toFixed(2)}`;
         return;
     }
 
@@ -362,7 +378,7 @@ function populateExpensesSpreadsheetTable() {
             </tr>`;
     });
 
-    const netBalanceLeft = startingCapital + totalSalesRevenue - totalAccumulatedSpent;
+    const netBalanceLeft = startingCapital + totalSalesRevenueReceived - totalAccumulatedSpent;
     if (totalFooterDisplay) totalFooterDisplay.innerText = `GH₵ ${totalAccumulatedSpent.toFixed(2)}`;
     if (netBalanceDisplay) {
         netBalanceDisplay.innerText = `GH₵ ${netBalanceLeft.toFixed(2)}`;
@@ -381,8 +397,8 @@ function buildCombinedReportData() {
             amountDisplay: "-", numericAmount: 0
         })),
         ...salesList.map(s => ({
-            date: s.date, rawType: "sales", typeDisplay: "💰 Sale",
-            details: `Customer: ${s.customer} | ${s.quantity} x ${s.type} @ GH₵ ${s.unitPrice}`,
+            date: s.date, rawType: "sales", typeDisplay: s.status === "Unpaid" ? "🔴 Sale [UNPAID]" : "💰 Sale [PAID]",
+            details: `Customer: ${s.customer} | ${s.quantity} x ${s.type} @ GH₵ ${s.unitPrice} ${s.status === "Unpaid" ? '(Credit Extended)' : ''}`,
             amountDisplay: `GH₵ ${Number(s.amount).toFixed(2)}`, numericAmount: Number(s.amount || 0)
         })),
         ...expensesList.map(e => ({
@@ -566,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Invoice sales form submission
+    // Invoice sales form submission (UPDATED TO LOG PAYMENT STATUS)
     const salesForm = document.getElementById("salesForm");
     if (salesForm) {
         salesForm.addEventListener("submit", async (e) => {
@@ -575,15 +591,22 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 const qty = Number(document.getElementById("quantity").value);
                 const price = Number(document.getElementById("price").value);
+                
+                // Read from your select element. Defaulting to 'Paid' dynamically if UI element isn't present
+                const statusElement = document.getElementById("paymentStatus");
+                const currentStatus = statusElement ? statusElement.value : "Paid";
+
                 await addDoc(collection(db, "sales"), {
                     date: document.getElementById("saleDate").value,
                     customer: document.getElementById("customerName").value,
-                    type: document.getElementById("blockType").value, // Make sure your HTML select element matches the exact block names!
+                    type: document.getElementById("blockType").value, 
                     quantity: qty,
                     unitPrice: price,
-                    amount: qty * price
+                    amount: qty * price,
+                    status: currentStatus // Writes "Paid" or "Unpaid" down to Firebase
                 });
-                alert("💰 Sale invoice added successfully!"); salesForm.reset();
+                alert(`💰 Sale invoice added successfully as [${currentStatus.toUpperCase()}]!`); 
+                salesForm.reset();
             } catch (err) { alert("Save Error: " + err.message); }
             btn.disabled = false;
         });
